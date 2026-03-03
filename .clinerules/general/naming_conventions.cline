@@ -1,0 +1,41 @@
+# E-Commerce Data Warehouse Naming Conventions
+
+## Python Files and Classes
+- Python modules MUST use snake_case (e.g., generate_customers.py, transform_orders.py)
+- Python classes MUST use PascalCase (e.g., CustomerGenerator, OrderTransformer)
+- Python functions MUST use snake_case (e.g., generate_customer_data, clean_dataframe)
+- Python variables MUST use snake_case (e.g., customer_id, order_date)
+- Python constants MUST use UPPER_SNAKE_CASE (e.g., BATCH_SIZE, MAX_RETRIES)
+
+## Database Objects
+- Database tables MUST use snake_case (e.g., dim_customer, fact_orders)
+- Database columns MUST use snake_case (e.g., customer_id, order_date)
+- Primary keys MUST follow pattern: table_name_id (e.g., customer_id, product_id)
+- Foreign keys MUST follow pattern: referenced_table_name_id (e.g., customer_id, product_id)
+- Surrogate keys MUST use: sk_table_name (e.g., sk_customer, sk_product)
+
+## Airflow Objects
+- DAG IDs MUST use snake_case with prefix 'ecommerce_' (e.g., ecommerce_etl_dag, ecommerce_data_quality_dag)
+- Task IDs MUST use snake_case (e.g., generate_customers, transform_orders)
+- Airflow variables MUST use snake_case with prefix 'ecommerce_' (e.g., ecommerce_data_path, ecommerce_spark_config)
+
+## Spark Objects
+- DataFrame variables MUST use snake_case with _df suffix (e.g., customers_df, orders_df)
+- Spark configurations MUST use snake_case (e.g., spark_config, parquet_options)
+- Temporary views MUST use snake_case with _temp suffix (e.g., orders_temp, customers_temp)
+
+## File Paths and Directories
+- Directory names MUST use snake_case (e.g., raw_data, cleaned_data, curated_data)
+- File names MUST use snake_case with appropriate extensions (e.g., customers_2023.csv, orders_2023.parquet)
+- Partition directories MUST follow pattern: column_name=value (e.g., year=2023, country=US)
+
+## SQL Objects
+- SQL table names MUST use snake_case (e.g., dim_customer, fact_orders)
+- SQL column names MUST use snake_case (e.g., customer_name, order_amount)
+- SQL views MUST use snake_case with _v suffix (e.g., customer_orders_v, product_revenue_v)
+- SQL stored procedures MUST use snake_case with _sp suffix (e.g., calculate_ltv_sp, update_dimensions_sp)
+
+## Configuration and Environment
+- Environment variables MUST use UPPER_SNAKE_CASE with prefix 'ECOMMERCE_' (e.g., ECOMMERCE_SPARK_MASTER, ECOMMERCE_DATA_LAKE_PATH)
+- Configuration keys MUST use snake_case (e.g., spark_master, data_lake_path)
+- Log levels MUST use UPPER_SNAKE_CASE (e.g., INFO, DEBUG, ERROR)

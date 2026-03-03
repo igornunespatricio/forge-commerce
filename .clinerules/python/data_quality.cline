@@ -1,0 +1,36 @@
+# Data Quality and Validation Standards
+
+## Data Quality Checks
+- MUST implement null checks on primary keys before processing
+- MUST detect and handle duplicate records appropriately
+- MUST validate referential integrity between related tables
+- MUST implement volume checks with row count thresholds
+- MUST validate data types and format consistency
+
+## Validation Rules
+- MUST define business rules for each data entity
+- MUST implement range checks for numeric fields (e.g., prices, quantities)
+- MUST validate date ranges and temporal consistency
+- MUST check for data completeness across related entities
+- MUST implement cross-table validation rules
+
+## Error Handling
+- MUST categorize data quality issues by severity (critical, warning, info)
+- MUST implement graceful handling of data quality failures
+- MUST provide detailed error messages with context
+- MUST log data quality metrics for trend analysis
+- MUST implement data quality dashboards for monitoring
+
+## Data Profiling
+- MUST generate data quality reports for each pipeline run
+- MUST track data quality metrics over time
+- MUST implement automated data profiling for new datasets
+- MUST validate data distributions and patterns
+- MUST monitor for data drift and anomalies
+
+## Testing and Validation
+- MUST include data quality tests in CI/CD pipeline
+- MUST implement unit tests for validation logic
+- MUST create test datasets with known data quality issues
+- MUST validate data quality rules against business requirements
+- MUST implement regression testing for data quality checks

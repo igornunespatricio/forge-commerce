@@ -1,0 +1,57 @@
+# Data Warehouse Modeling and Architecture Standards
+
+## Star Schema Implementation
+- MUST implement proper star schema with fact and dimension tables
+- MUST use surrogate keys for all dimension tables (sk_table_name pattern)
+- MUST implement slowly changing dimensions (SCD Type 2) for historical tracking
+- MUST use appropriate data types for optimal storage and query performance
+- MUST implement proper indexing strategies for large fact tables
+
+## Fact Table Design
+- MUST use grain-appropriate fact tables (transaction-level for orders)
+- MUST implement proper foreign key relationships to dimension tables
+- MUST use appropriate partitioning strategies (date, region, product category)
+- MUST implement data compression for storage optimization
+- MUST ensure referential integrity between fact and dimension tables
+
+## Dimension Table Design
+- MUST implement conformed dimensions for consistent business logic
+- MUST use proper surrogate keys with auto-incrementing integers
+- MUST implement SCD Type 2 for slowly changing attributes
+- MUST include effective date ranges for historical tracking
+- MUST implement proper data validation and cleansing
+
+## Data Partitioning Strategy
+- MUST partition large fact tables by date (daily partitions recommended)
+- MUST implement multi-level partitioning for complex queries
+- MUST use appropriate partition sizes (100MB-1GB recommended)
+- MUST implement partition pruning for query optimization
+- MUST use partition discovery for efficient data reading
+
+## Performance Optimization
+- MUST implement proper indexing on frequently queried columns
+- MUST use columnar storage formats (Parquet) with compression
+- MUST implement data compression for storage and I/O optimization
+- MUST use appropriate file formats for different use cases
+- MUST implement data compaction for small files
+
+## Data Quality and Governance
+- MUST implement data quality checks at ETL pipeline stages
+- MUST validate referential integrity between related tables
+- MUST implement data lineage tracking for compliance
+- MUST document data definitions and business rules
+- MUST implement data retention policies
+
+## Scalability Considerations
+- MUST design for horizontal scaling of data volumes
+- MUST implement proper resource allocation for large queries
+- MUST use appropriate cluster sizing for expected workloads
+- MUST implement query optimization for concurrent users
+- MUST plan for data growth and performance requirements
+
+## Testing and Validation
+- MUST implement unit tests for data transformations
+- MUST validate data quality metrics and thresholds
+- MUST test query performance with realistic data volumes
+- MUST implement regression testing for schema changes
+- MUST validate data consistency across related tables

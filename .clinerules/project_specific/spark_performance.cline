@@ -1,0 +1,50 @@
+# Apache Spark Performance Optimization Rules
+
+## Cluster Configuration
+- MUST configure Spark executor memory based on available cluster resources
+- MUST set appropriate number of executors and cores per executor
+- MUST configure Spark driver memory for large dataset processing
+- MUST implement dynamic allocation for resource optimization
+- MUST configure garbage collection settings for memory-intensive operations
+
+## Data Partitioning Strategies
+- MUST partition large fact tables by date and high-cardinality dimensions
+- MUST use bucketing for frequently joined dimension tables
+- MUST implement partition pruning for date-range queries
+- MUST avoid partition skew by using appropriate partition keys
+- MUST use partition discovery for efficient data reading
+
+## Memory Management
+- MUST configure appropriate memory fractions for storage and execution
+- MUST implement broadcast joins for small dimension tables (< 10GB)
+- MUST use off-heap memory for large datasets when available
+- MUST implement proper caching strategies for frequently accessed data
+- MUST monitor and tune memory usage for optimal performance
+
+## Query Optimization
+- MUST use columnar formats (Parquet) with appropriate compression
+- MUST implement predicate pushdown for efficient filtering
+- MUST use projection pushdown to read only required columns
+- MUST optimize join strategies (broadcast, shuffle, sort-merge)
+- MUST implement data skew handling with salting techniques
+
+## Data Processing Patterns
+- MUST use DataFrame API over RDDs for Catalyst optimizer benefits
+- MUST implement incremental processing for large datasets
+- MUST use checkpointing for long lineage chains
+- MUST optimize shuffle operations with appropriate partition counts
+- MUST implement data compaction for small files
+
+## Monitoring and Debugging
+- MUST implement Spark UI monitoring for performance analysis
+- MUST log execution plans for query optimization
+- MUST monitor resource utilization and GC metrics
+- MUST implement custom metrics for business logic monitoring
+- MUST use Spark history server for production monitoring
+
+## Fault Tolerance
+- MUST implement checkpointing for long-running operations
+- MUST configure appropriate retry policies for transient failures
+- MUST implement data recovery strategies for failed tasks
+- MUST use write-ahead logs for critical data operations
+- MUST implement proper error handling and recovery mechanisms

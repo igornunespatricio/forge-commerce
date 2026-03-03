@@ -1,0 +1,38 @@
+# E-Commerce Data Warehouse Project Structure Rules
+
+## Project Organization
+- MUST follow the documented project structure in README.md
+- MUST organize files into: data/, faker/, spark/, airflow/, sql/
+- MUST maintain separation between raw, cleaned, and curated data directories
+- MUST keep DAG files in airflow/dags/ directory
+
+## Directory Requirements
+- data/ directory MUST contain: raw/, cleaned/, curated/ subdirectories
+- faker/ directory MUST contain: generate_customers.py, generate_products.py, generate_orders.py, generate_payments.py
+- spark/ directory MUST contain: clean_customers.py, transform_orders.py, build_fact_orders.py, build_dimensions.py
+- airflow/dags/ directory MUST contain: ecommerce_etl_dag.py
+- sql/ directory MUST contain: analytics_queries.sql
+
+## File Naming Conventions
+- Python files MUST use snake_case (e.g., generate_customers.py)
+- SQL files MUST use snake_case (e.g., analytics_queries.sql)
+- Configuration files MUST use .conf or .ini extension
+- Data files MUST use appropriate extensions (CSV, JSON, Parquet)
+
+## Code Organization
+- Each module MUST have a clear, single responsibility
+- Data generation scripts MUST be separate from transformation scripts
+- Airflow DAGs MUST be modular and reusable
+- SQL queries MUST be organized by purpose (analytics, reporting, etc.)
+
+## Documentation Requirements
+- Each Python module MUST include docstrings
+- Each DAG MUST document dependencies and schedule
+- SQL queries MUST include comments explaining business logic
+- README.md MUST be kept up-to-date with project changes
+
+## Version Control
+- Data files SHOULD NOT be committed to version control (use .gitignore)
+- Configuration files MUST be environment-specific
+- Schema changes MUST be documented
+- Pipeline changes MUST include migration notes

@@ -1,0 +1,50 @@
+# Apache Airflow Orchestration Best Practices
+
+## DAG Design and Structure
+- MUST use clear, descriptive DAG IDs with 'ecommerce_' prefix
+- MUST implement proper task dependencies using bitshift operators (>> and <<)
+- MUST use appropriate task groups for logical organization
+- MUST implement idempotent tasks that can be safely re-run
+- MUST use XComs sparingly and prefer file-based data exchange
+
+## Task Implementation
+- MUST implement proper error handling with try-catch blocks
+- MUST use appropriate retry policies with exponential backoff
+- MUST implement task timeouts to prevent hanging workflows
+- MUST use task-specific execution timeouts
+- MUST implement graceful failure handling with clear error messages
+
+## Scheduling and Triggers
+- MUST use appropriate schedule intervals based on data freshness requirements
+- MUST implement data-driven scheduling when possible
+- MUST use external task sensors for cross-DAG dependencies
+- MUST implement proper timezone handling for global operations
+- MUST use catchup=False for continuous processing DAGs
+
+## Resource Management
+- MUST configure appropriate pool sizes for resource-constrained environments
+- MUST implement proper memory and CPU limits for tasks
+- MUST use task-level resource allocation when available
+- MUST implement proper cleanup of temporary resources
+- MUST monitor task execution times and resource usage
+
+## Data Quality and Monitoring
+- MUST implement data quality checks as separate tasks
+- MUST use SLA monitoring for critical data pipelines
+- MUST implement proper alerting for task failures
+- MUST log data lineage and processing metrics
+- MUST implement data validation before downstream processing
+
+## Configuration and Environment
+- MUST externalize configuration using Airflow Variables or Connections
+- MUST implement environment-specific configurations
+- MUST use proper secrets management for sensitive data
+- MUST implement proper logging configuration
+- MUST use DAG-level default arguments for consistency
+
+## Performance Optimization
+- MUST implement parallel processing where possible
+- MUST use appropriate concurrency settings
+- MUST implement proper task scheduling to avoid resource contention
+- MUST use subDAGs or TaskGroups for complex workflows
+- MUST implement proper cleanup of old DAG runs and logs

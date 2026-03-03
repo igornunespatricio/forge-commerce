@@ -1,0 +1,50 @@
+# Faker Data Generation Project-Specific Rules
+
+## Data Volume and Scaling
+- MUST generate data volumes matching project targets (5M-10M customers, 20M-50M orders)
+- MUST implement batch processing for large-scale generation to prevent memory issues
+- MUST use appropriate batch sizes (10K-100K records per batch) based on available memory
+- MUST implement progress tracking and checkpointing for long-running generation jobs
+- MUST support incremental data generation for testing and development
+
+## E-Commerce Domain Data
+- MUST generate realistic customer demographics with geographic distribution
+- MUST implement product categorization with realistic pricing and inventory levels
+- MUST generate order data with temporal patterns (peak hours, seasonal trends)
+- MUST create payment data with realistic success/failure rates and payment methods
+- MUST ensure referential integrity between customers, products, orders, and payments
+
+## Data Distribution and Skew
+- MUST implement Pareto principle (80/20 rule) for popular products and high-value customers
+- MUST generate realistic customer lifetime value distributions
+- MUST create seasonal and temporal patterns in order data
+- MUST implement geographic distribution patterns for customers and orders
+- MUST ensure data skew matches real e-commerce patterns
+
+## Data Quality and Validation
+- MUST validate generated data against business rules (e.g., order dates after customer creation)
+- MUST implement data quality checks during generation process
+- MUST ensure no orphaned records in related entities
+- MUST validate data ranges (prices, quantities, dates) against realistic bounds
+- MUST implement duplicate detection and prevention
+
+## Performance and Optimization
+- MUST optimize Faker usage with provider caching for repeated data generation
+- MUST implement parallel processing for independent data generation tasks
+- MUST use appropriate data structures for efficient batch processing
+- MUST implement memory-efficient streaming for large dataset generation
+- MUST optimize file I/O operations for output formats
+
+## Configuration and Flexibility
+- MUST support configurable data volumes for different environments (dev, test, prod)
+- MUST allow customization of data distributions and patterns
+- MUST support different output formats (CSV, JSON, Parquet) with appropriate compression
+- MUST implement environment-specific configurations for data generation
+- MUST provide sensible defaults while allowing customization
+
+## Testing and Development Support
+- MUST support smaller dataset generation for development and testing
+- MUST implement deterministic data generation for reproducible test scenarios
+- MUST provide data validation tools for generated datasets
+- MUST support data generation with known quality issues for testing data quality checks
+- MUST implement data generation metrics and reporting

@@ -1,0 +1,50 @@
+# Apache Spark Data Processing Best Practices
+
+## Spark Configuration and Performance
+- MUST configure Spark session with appropriate memory settings for data volume
+- MUST use appropriate partitioning strategies for large datasets
+- MUST implement broadcast joins for small lookup tables
+- MUST avoid shuffles when possible through careful data organization
+- MUST set appropriate parallelism levels based on cluster resources
+
+## DataFrame Operations
+- MUST use DataFrame API over RDDs for better optimization
+- MUST cache DataFrames only when reused multiple times
+- MUST use appropriate data types to minimize memory usage
+- MUST implement predicate pushdown for efficient filtering
+- MUST use column pruning to read only required columns
+
+## Data Quality and Validation
+- MUST implement schema validation before processing
+- MUST handle null values appropriately with coalesce or null-safe operations
+- MUST implement data quality checks with descriptive error messages
+- MUST use assert statements for critical data assumptions
+- MUST log data quality metrics for monitoring
+
+## Error Handling and Resilience
+- MUST implement retry logic for transient failures
+- MUST use try-catch blocks for critical operations
+- MUST implement graceful degradation for non-critical failures
+- MUST log detailed error information for debugging
+- MUST implement circuit breakers for external dependencies
+
+## Resource Management
+- MUST monitor memory usage and implement garbage collection strategies
+- MUST use appropriate file formats (Parquet preferred for columnar storage)
+- MUST implement proper cleanup of temporary files and resources
+- MUST use checkpointing for long-running operations
+- MUST optimize file sizes for HDFS/S3 storage (128MB+ recommended)
+
+## Partitioning and Performance
+- MUST partition data by high-cardinality columns for optimal performance
+- MUST avoid data skew through salting or bucketing strategies
+- MUST use appropriate partition sizes (100MB-1GB recommended)
+- MUST implement dynamic partition pruning for query optimization
+- MUST use bucketing for frequently joined large tables
+
+## Code Organization
+- MUST separate Spark configuration from business logic
+- MUST use functions for reusable transformations
+- MUST implement proper logging with structured format
+- MUST use configuration files for environment-specific settings
+- MUST implement unit tests for transformation logic

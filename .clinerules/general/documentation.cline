@@ -1,0 +1,73 @@
+# E-Commerce Data Warehouse Documentation Standards
+
+## Python Module Documentation
+- Every Python module MUST include a module-level docstring explaining its purpose
+- Every class MUST have a docstring describing its functionality and responsibilities
+- Every public function MUST have a docstring with:
+  - Brief description of what the function does
+  - Parameters section with types and descriptions
+  - Returns section with type and description
+  - Example usage when applicable
+- Complex algorithms MUST include inline comments explaining the logic
+
+## Airflow DAG Documentation
+- Every DAG MUST include a docstring explaining the pipeline workflow
+- DAG docstring MUST specify:
+  - Purpose of the pipeline
+  - Schedule interval
+  - Dependencies between tasks
+  - Expected data volumes
+  - Error handling strategy
+- Each task MUST have a docstring explaining its specific purpose
+- Critical tasks MUST include comments about performance considerations
+
+## SQL Query Documentation
+- Every SQL file MUST include a header comment explaining the query's purpose
+- Complex queries MUST include inline comments for:
+  - Business logic explanations
+  - Performance optimization notes
+  - Data quality assumptions
+- Views MUST document their intended use cases
+- Stored procedures MUST include parameter descriptions and return values
+
+## Configuration Documentation
+- Configuration files MUST include comments explaining each setting
+- Environment-specific configurations MUST be clearly marked
+- Default values MUST be documented with their rationale
+- Sensitive configurations MUST be marked appropriately
+
+## Data Model Documentation
+- Data warehouse schema MUST be documented with:
+  - Table descriptions and purposes
+  - Column definitions and data types
+  - Primary and foreign key relationships
+  - Partitioning strategies
+  - Data quality rules
+- Data lineage MUST be documented for critical tables
+- Business definitions for key metrics MUST be included
+
+## Pipeline Documentation
+- ETL pipeline documentation MUST include:
+  - Data flow diagrams
+  - Processing steps and transformations
+  - Data quality checks performed
+  - Performance benchmarks
+  - Monitoring and alerting setup
+- Data generation scripts MUST document:
+  - Data volume targets
+  - Distribution patterns used
+  - Skew and correlation assumptions
+  - Validation rules applied
+
+## README Maintenance
+- README.md MUST be updated when:
+  - New components are added
+  - Architecture changes occur
+  - Dependencies are updated
+  - Performance characteristics change
+- README MUST include:
+  - Setup instructions
+  - Running instructions
+  - Troubleshooting guide
+  - Performance expectations
+  - Future enhancement plans

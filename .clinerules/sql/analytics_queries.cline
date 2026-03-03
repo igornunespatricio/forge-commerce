@@ -1,0 +1,50 @@
+# SQL Analytics and Data Warehouse Standards
+
+## Star Schema Design
+- MUST implement proper star schema with fact and dimension tables
+- MUST use surrogate keys for dimension tables (sk_table_name pattern)
+- MUST implement slowly changing dimensions (SCD) for historical tracking
+- MUST use appropriate data types for optimal storage and performance
+- MUST implement proper indexing strategies for large fact tables
+
+## Query Performance
+- MUST use appropriate partitioning strategies (date, region, product category)
+- MUST implement columnar storage (Parquet) for analytical queries
+- MUST use predicate pushdown for efficient filtering
+- MUST avoid SELECT * in favor of explicit column selection
+- MUST implement proper join strategies (broadcast, shuffle, sort-merge)
+
+## Analytics Query Standards
+- MUST use CTEs (Common Table Expressions) for complex multi-step queries
+- MUST implement window functions for analytical calculations
+- MUST use appropriate aggregation functions for business metrics
+- MUST implement proper date/time handling for temporal analysis
+- MUST use parameterized queries for dynamic reporting
+
+## Data Quality in SQL
+- MUST implement data validation checks in SQL transformations
+- MUST handle null values appropriately in aggregations
+- MUST implement referential integrity checks between tables
+- MUST validate data ranges and business rule compliance
+- MUST implement data lineage tracking in views and stored procedures
+
+## View and Stored Procedure Standards
+- MUST document all views with business purpose and usage
+- MUST implement parameter validation in stored procedures
+- MUST use consistent naming conventions (snake_case with _v or _sp suffix)
+- MUST implement proper error handling and logging
+- MUST optimize views for query performance
+
+## Business Intelligence Support
+- MUST implement standard metrics and KPIs consistently
+- MUST support drill-down and roll-up operations
+- MUST implement time-series analysis capabilities
+- MUST support cohort and funnel analysis
+- MUST provide data for dashboard and reporting tools
+
+## Testing and Validation
+- MUST include unit tests for complex SQL transformations
+- MUST validate query results against expected business rules
+- MUST implement performance testing for analytical queries
+- MUST test data quality checks with known datasets
+- MUST validate data consistency across related tables

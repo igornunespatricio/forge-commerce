@@ -1,0 +1,45 @@
+# Faker Data Generation Best Practices
+
+## Data Volume and Performance
+- MUST generate data in batches to avoid memory issues with large datasets
+- Batch sizes MUST be configurable and appropriate for target data volumes
+- MUST implement progress tracking for long-running generation processes
+- MUST use Faker's built-in performance optimizations (e.g., caching providers)
+
+## Data Quality and Realism
+- MUST introduce realistic data skew (e.g., Pareto distribution for popular products)
+- MUST ensure referential integrity between related entities (customers, orders, products)
+- MUST generate data with realistic temporal patterns (seasonality, business hours)
+- MUST avoid generating obviously fake or unrealistic data patterns
+- MUST implement data validation checks during generation
+
+## Faker Configuration
+- MUST use consistent Faker locales for realistic regional data
+- MUST seed Faker for reproducible test data when needed
+- MUST customize Faker providers for domain-specific data (e.g., product categories)
+- MUST validate generated data against business rules and constraints
+
+## File Output Standards
+- MUST support multiple output formats (CSV, JSON, Parquet)
+- MUST implement proper file compression for large datasets
+- MUST include appropriate headers and metadata in output files
+- MUST handle file I/O errors gracefully with retry mechanisms
+- MUST implement atomic file writes to prevent corruption
+
+## Error Handling and Logging
+- MUST implement comprehensive error handling for data generation failures
+- MUST log generation progress and any data quality issues
+- MUST provide clear error messages for validation failures
+- MUST implement graceful degradation for non-critical failures
+
+## Configuration Management
+- MUST externalize configuration (batch sizes, data volumes, output paths)
+- MUST support environment-specific configurations
+- MUST validate configuration parameters before generation
+- MUST provide sensible defaults for all configurable parameters
+
+## Testing and Validation
+- MUST include unit tests for data generation logic
+- MUST validate output data against schema definitions
+- MUST implement data quality metrics and reporting
+- MUST support data generation in test environments with smaller datasets
