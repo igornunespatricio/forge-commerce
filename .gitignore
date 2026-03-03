@@ -131,15 +131,7 @@ cython_debug/
 .vscode/
 
 # Data files (large datasets)
-data/raw/*.csv
-data/raw/*.json
-data/raw/*.parquet
-data/cleaned/*.csv
-data/cleaned/*.json
-data/cleaned/*.parquet
-data/curated/*.csv
-data/curated/*.json
-data/curated/*.parquet
+data/*
 
 # Logs
 *.log
