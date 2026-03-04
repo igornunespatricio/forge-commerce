@@ -29,8 +29,8 @@ customers:
 products:
 	@echo "Generating product data..."
 	@poetry run python generate_products.py \
-		--total-records 10000 \
-		--batch-size 1000 \
+		--total-records 1000 \
+		--batch-size 100 \
 		--output-dir $(DATA_DIR)/products \
 		--output-format json
 
