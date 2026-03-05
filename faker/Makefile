@@ -41,7 +41,11 @@ orders:
 		--total-records 5000 \
 		--batch-size 500 \
 		--output-dir $(DATA_DIR)/orders \
-		--output-format json
+		--output-format json \
+		--customer-data $(DATA_DIR)/customers \
+		--product-data $(DATA_DIR)/products \
+		--customer-format json \
+		--product-format json
 
 # Generate payment data (placeholder - to be implemented)
 payments:
