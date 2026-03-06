@@ -206,99 +206,298 @@ class PaymentGenerator:
             'apple_pay': 0.002,    # 0.2%
             'google_pay': 0.002    # 0.2%
         }
+        
+        # Payment attempt probabilities
+        self.payment_attempt_probabilities = {
+            'completed': 0.95,      # 95% of completed orders have payment attempts
+            'pending': 0.60,        # 60% of pending orders have payment attempts
+            'cancelled': 0.40,      # 40% of cancelled orders have payment attempts
+            'refunded': 0.90        # 90% of refunded orders have payment attempts
+        }
     
     def generate_batch(self, batch_size: int, batch_num: int, order_data: List[Dict]) -> List[Dict]:
-        """Generate a batch of payment records."""
+        """Generate a batch of payment records with realistic scenarios."""
         batch_data = []
         
         # Create lookup dictionary for faster access
         order_lookup = {o['order_id']: o for o in order_data}
         
+        # Track payment attempts per order to prevent duplicate successes
+        order_payment_history = {}
+        
         for i in range(batch_size):
             payment_id = self.config['start_id'] + (batch_num * self.config['batch_size']) + i
             
-            # Select order with realistic distribution
-            order_id = random.choice(list(order_lookup.keys()))
+            # Select order for payment with realistic probability
+            order_id = self._select_order_for_payment(order_data, order_payment_history)
+            
+            if order_id is None:
+                # No orders need payments, skip this iteration
+                continue
+                
             order = order_lookup[order_id]
+            payment_history = order_payment_history.get(order_id, [])
             
-            customer_segment = order['customer_segment']
-            order_status = order['order_status']
-            order_amount = order['total_amount']
+            # Generate payment based on order status and payment history
+            payment_data = self._generate_payment_for_order(
+                order, payment_history, payment_id, i, batch_num
+            )
             
-            # Generate payment data
-            payment_method = self.faker.payment_method(customer_segment)
-            payment_status = self.faker.payment_status(payment_method, order_status)
-            payment_gateway = self.faker.payment_gateway(payment_method)
-            currency_code = self.faker.currency_code()
-            
-            # Generate payment date
-            order_date = datetime.strptime(order['order_date'], '%Y-%m-%d')
-            payment_date = self.faker.payment_date(order_date, payment_method)
-            
-            # Calculate transaction fee
-            transaction_fee_rate = self.transaction_fees[payment_method]
-            transaction_fee = order_amount * transaction_fee_rate
-            
-            # Generate fraud score
-            fraud_score = self.faker.fraud_score(payment_method, customer_segment, order_amount)
-            
-            # Determine if this payment should have a chargeback
-            chargeback_amount = 0.0
-            chargeback_date = None
-            chargeback_reason = None
-            
-            if payment_status == 'success' and random.random() < self.chargeback_rates[payment_method]:
-                chargeback_amount = order_amount
-                chargeback_date = payment_date + timedelta(days=random.randint(1, 90))
-                chargeback_reasons = [
-                    ('fraudulent', 0.40),
-                    ('not_received', 0.30),
-                    ('defective', 0.20),
-                    ('cancelled', 0.10)
-                ]
-                chargeback_reason = random.choices(
-                    population=[r[0] for r in chargeback_reasons],
-                    weights=[r[1] for r in chargeback_reasons],
-                    k=1
-                )[0]
-            
-            # Generate payment reference
-            payment_reference = self.faker.bothify(text='PAY-########')
-            
-            payment_data = {
-                'payment_id': payment_id,
-                'payment_uuid': self.faker.uuid4(),
-                'order_id': order_id,
-                'customer_id': order['customer_id'],
-                'customer_segment': customer_segment,
-                'payment_method': payment_method,
-                'payment_status': payment_status,
-                'payment_gateway': payment_gateway,
-                'payment_date': payment_date.strftime('%Y-%m-%d'),
-                'payment_time': payment_date.strftime('%H:%M:%S'),
-                'currency_code': currency_code,
-                'order_amount': round(order_amount, 2),
-                'transaction_fee_rate': transaction_fee_rate,
-                'transaction_fee': round(transaction_fee, 2),
-                'net_amount': round(order_amount - transaction_fee, 2),
-                'fraud_score': fraud_score,
-                'chargeback_amount': round(chargeback_amount, 2),
-                'chargeback_date': chargeback_date.strftime('%Y-%m-%d') if chargeback_date else None,
-                'chargeback_reason': chargeback_reason,
-                'payment_reference': payment_reference,
-                'payment_metadata': {
-                    'ip_address': self.faker.ipv4(),
-                    'user_agent': self.faker.user_agent(),
-                    'device_type': random.choice(['desktop', 'mobile', 'tablet']),
-                    'browser': random.choice(['chrome', 'firefox', 'safari', 'edge'])
-                },
-                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            }
+            # Update payment history
+            order_payment_history[order_id] = payment_history + [payment_data['payment_status']]
             
             batch_data.append(payment_data)
         
         return batch_data
+    
+    def _select_order_for_payment(self, order_data: List[Dict], order_payment_history: Dict) -> Optional[int]:
+        """Select order for payment based on realistic probabilities."""
+        eligible_orders = []
+        
+        for order in order_data:
+            order_id = order['order_id']
+            order_status = order['order_status']
+            payment_history = order_payment_history.get(order_id, [])
+            
+            # Check if order already has successful payment
+            if 'success' in payment_history:
+                continue  # Skip orders that already have successful payments
+            
+            # Determine probability of payment attempt based on order status
+            attempt_probability = self.payment_attempt_probabilities.get(order_status, 0.5)
+            
+            # Check if this order should have a payment attempt
+            if random.random() < attempt_probability:
+                eligible_orders.append(order_id)
+        
+        if not eligible_orders:
+            return None  # No orders need payments
+        
+        return random.choice(eligible_orders)
+    
+    def _generate_payment_for_order(self, order: Dict, payment_history: List[str], 
+                                   payment_id: int, payment_index: int, batch_num: int) -> Dict:
+        """Generate payment record for a specific order with realistic retry logic."""
+        
+        customer_segment = order['customer_segment']
+        order_status = order['order_status']
+        order_amount = order['total_amount']
+        order_date = datetime.strptime(order['order_date'], '%Y-%m-%d')
+        
+        # Determine payment attempt type based on history
+        if not payment_history:
+            # First payment attempt
+            payment_data = self._generate_first_payment_attempt(
+                order, payment_id, payment_index, batch_num
+            )
+        else:
+            # Retry payment attempt
+            payment_data = self._generate_retry_payment_attempt(
+                order, payment_history, payment_id, payment_index, batch_num
+            )
+        
+        return payment_data
+    
+    def _generate_first_payment_attempt(self, order: Dict, payment_id: int, 
+                                       payment_index: int, batch_num: int) -> Dict:
+        """Generate first payment attempt for an order."""
+        
+        customer_segment = order['customer_segment']
+        order_status = order['order_status']
+        order_amount = order['total_amount']
+        order_date = datetime.strptime(order['order_date'], '%Y-%m-%d')
+        
+        # Generate payment method based on customer segment
+        payment_method = self.faker.payment_method(customer_segment)
+        
+        # Determine success probability based on order status and customer segment
+        if order_status == 'completed':
+            # High success rate for completed orders
+            success_prob = 0.85 if customer_segment == 'premium' else 0.75
+        elif order_status == 'pending':
+            # Lower success rate for pending orders
+            success_prob = 0.60
+        elif order_status == 'cancelled':
+            # Very low success rate for cancelled orders
+            success_prob = 0.20
+        else:  # refunded
+            success_prob = 0.90
+        
+        # Generate payment status
+        if random.random() < success_prob:
+            payment_status = 'success'
+        else:
+            payment_status = random.choices(
+                population=['failed', 'pending'],
+                weights=[0.8, 0.2],
+                k=1
+            )[0]
+        
+        # Generate other payment data
+        payment_gateway = self.faker.payment_gateway(payment_method)
+        currency_code = self.faker.currency_code()
+        payment_date = self.faker.payment_date(order_date, payment_method)
+        
+        # Calculate transaction fee
+        transaction_fee_rate = self.transaction_fees[payment_method]
+        transaction_fee = order_amount * transaction_fee_rate
+        
+        # Generate fraud score
+        fraud_score = self.faker.fraud_score(payment_method, customer_segment, order_amount)
+        
+        # Determine if this payment should have a chargeback (only for successful payments)
+        chargeback_amount = 0.0
+        chargeback_date = None
+        chargeback_reason = None
+        
+        if payment_status == 'success' and random.random() < self.chargeback_rates[payment_method]:
+            chargeback_amount = order_amount
+            chargeback_date = payment_date + timedelta(days=random.randint(1, 90))
+            chargeback_reasons = [
+                ('fraudulent', 0.40),
+                ('not_received', 0.30),
+                ('defective', 0.20),
+                ('cancelled', 0.10)
+            ]
+            chargeback_reason = random.choices(
+                population=[r[0] for r in chargeback_reasons],
+                weights=[r[1] for r in chargeback_reasons],
+                k=1
+            )[0]
+        
+        # Generate payment reference
+        payment_reference = self.faker.bothify(text='PAY-########')
+        
+        return {
+            'payment_id': payment_id,
+            'payment_uuid': self.faker.uuid4(),
+            'order_id': order['order_id'],
+            'customer_id': order['customer_id'],
+            'customer_segment': customer_segment,
+            'payment_method': payment_method,
+            'payment_status': payment_status,
+            'payment_gateway': payment_gateway,
+            'payment_date': payment_date.strftime('%Y-%m-%d'),
+            'payment_time': payment_date.strftime('%H:%M:%S'),
+            'currency_code': currency_code,
+            'order_amount': round(order_amount, 2),
+            'transaction_fee_rate': transaction_fee_rate,
+            'transaction_fee': round(transaction_fee, 2),
+            'net_amount': round(order_amount - transaction_fee, 2),
+            'fraud_score': fraud_score,
+            'chargeback_amount': round(chargeback_amount, 2),
+            'chargeback_date': chargeback_date.strftime('%Y-%m-%d') if chargeback_date else None,
+            'chargeback_reason': chargeback_reason,
+            'payment_reference': payment_reference,
+            'payment_metadata': {
+                'ip_address': self.faker.ipv4(),
+                'user_agent': self.faker.user_agent(),
+                'device_type': random.choice(['desktop', 'mobile', 'tablet']),
+                'browser': random.choice(['chrome', 'firefox', 'safari', 'edge'])
+            },
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+    
+    def _generate_retry_payment_attempt(self, order: Dict, payment_history: List[str],
+                                       payment_id: int, payment_index: int, batch_num: int) -> Dict:
+        """Generate retry payment attempt for an order."""
+        
+        customer_segment = order['customer_segment']
+        order_status = order['order_status']
+        order_amount = order['total_amount']
+        order_date = datetime.strptime(order['order_date'], '%Y-%m-%d')
+        
+        # Generate payment method (might be different from previous attempts)
+        payment_method = self.faker.payment_method(customer_segment)
+        
+        # Retry logic: failed payments have higher chance of success on retry
+        # but decreasing with each attempt
+        retry_count = len(payment_history)
+        base_success_prob = 0.60
+        
+        # Adjust success probability based on retry count
+        success_prob = base_success_prob * (0.9 ** retry_count)
+        
+        # Minimum success probability
+        success_prob = max(success_prob, 0.20)
+        
+        # Generate payment status
+        if random.random() < success_prob:
+            payment_status = 'success'
+        else:
+            payment_status = random.choices(
+                population=['failed', 'pending'],
+                weights=[0.9, 0.1],
+                k=1
+            )[0]
+        
+        # Generate other payment data (similar to first attempt)
+        payment_gateway = self.faker.payment_gateway(payment_method)
+        currency_code = self.faker.currency_code()
+        payment_date = self.faker.payment_date(order_date, payment_method)
+        
+        # Calculate transaction fee
+        transaction_fee_rate = self.transaction_fees[payment_method]
+        transaction_fee = order_amount * transaction_fee_rate
+        
+        # Generate fraud score (slightly higher for retry attempts)
+        fraud_score = self.faker.fraud_score(payment_method, customer_segment, order_amount)
+        fraud_score = min(fraud_score + 0.05, 1.0)  # Slightly higher risk for retries
+        
+        # Determine if this payment should have a chargeback
+        chargeback_amount = 0.0
+        chargeback_date = None
+        chargeback_reason = None
+        
+        if payment_status == 'success' and random.random() < self.chargeback_rates[payment_method]:
+            chargeback_amount = order_amount
+            chargeback_date = payment_date + timedelta(days=random.randint(1, 90))
+            chargeback_reasons = [
+                ('fraudulent', 0.40),
+                ('not_received', 0.30),
+                ('defective', 0.20),
+                ('cancelled', 0.10)
+            ]
+            chargeback_reason = random.choices(
+                population=[r[0] for r in chargeback_reasons],
+                weights=[r[1] for r in chargeback_reasons],
+                k=1
+            )[0]
+        
+        # Generate payment reference
+        payment_reference = self.faker.bothify(text='PAY-########')
+        
+        return {
+            'payment_id': payment_id,
+            'payment_uuid': self.faker.uuid4(),
+            'order_id': order['order_id'],
+            'customer_id': order['customer_id'],
+            'customer_segment': customer_segment,
+            'payment_method': payment_method,
+            'payment_status': payment_status,
+            'payment_gateway': payment_gateway,
+            'payment_date': payment_date.strftime('%Y-%m-%d'),
+            'payment_time': payment_date.strftime('%H:%M:%S'),
+            'currency_code': currency_code,
+            'order_amount': round(order_amount, 2),
+            'transaction_fee_rate': transaction_fee_rate,
+            'transaction_fee': round(transaction_fee, 2),
+            'net_amount': round(order_amount - transaction_fee, 2),
+            'fraud_score': round(fraud_score, 3),
+            'chargeback_amount': round(chargeback_amount, 2),
+            'chargeback_date': chargeback_date.strftime('%Y-%m-%d') if chargeback_date else None,
+            'chargeback_reason': chargeback_reason,
+            'payment_reference': payment_reference,
+            'payment_metadata': {
+                'ip_address': self.faker.ipv4(),
+                'user_agent': self.faker.user_agent(),
+                'device_type': random.choice(['desktop', 'mobile', 'tablet']),
+                'browser': random.choice(['chrome', 'firefox', 'safari', 'edge'])
+            },
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
     
     def validate_data(self, data: List[Dict]) -> bool:
         """Validate generated payment data."""
@@ -318,6 +517,48 @@ class PaymentGenerator:
                 logger.error(f"Invalid order amount: {record['order_amount']} in record {record.get('payment_id')}")
                 return False
         
+        # Validate realistic payment scenarios
+        if not self._validate_payment_scenarios(data):
+            return False
+        
+        return True
+    
+    def _validate_payment_scenarios(self, payment_data: List[Dict]) -> bool:
+        """Validate realistic payment scenarios and business rules."""
+        
+        # Group payments by order
+        order_payments = {}
+        for payment in payment_data:
+            order_id = payment['order_id']
+            if order_id not in order_payments:
+                order_payments[order_id] = []
+            order_payments[order_id].append(payment['payment_status'])
+        
+        # Validate scenarios
+        for order_id, payment_statuses in order_payments.items():
+            # Rule 1: Maximum one successful payment per order
+            success_count = payment_statuses.count('success')
+            if success_count > 1:
+                logger.error(f"Order {order_id} has {success_count} successful payments (should be max 1)")
+                return False
+            
+            # Rule 2: Failed payments should eventually succeed or be abandoned
+            if 'failed' in payment_statuses and 'success' not in payment_statuses:
+                # This is valid - order was abandoned after failed payment
+                pass
+            
+            # Rule 3: Pending payments should eventually succeed, fail, or remain pending
+            if 'pending' in payment_statuses:
+                # This is valid - payment is still processing
+                pass
+            
+            # Rule 4: Retry patterns should be realistic (decreasing success probability)
+            failed_count = payment_statuses.count('failed')
+            if failed_count > 3:
+                # Too many failed attempts is unrealistic
+                logger.warning(f"Order {order_id} has {failed_count} failed payments (unrealistic retry pattern)")
+        
+        logger.info(f"Payment scenario validation passed: {len(order_payments)} orders processed")
         return True
     
     def save_batch(self, data: List[Dict], batch_num: int, output_format: str = 'csv') -> str:
