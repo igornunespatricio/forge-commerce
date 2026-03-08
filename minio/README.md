@@ -14,7 +14,7 @@ docker-compose up -d
 This will:
 - Build the MinIO image from the Dockerfile
 - Start the MinIO server on ports 9000 (API) and 9001 (console)
-- Create a default bucket called `forge-commerce`
+- Create three buckets: `raw`, `cleaned`, and `curated`
 - Create a user `forge-commerce-user` with read/write permissions
 
 ## Access Information
