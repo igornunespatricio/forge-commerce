@@ -29,7 +29,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('generate_payments.log'),
+        logging.FileHandler('logs/generate_payments.log'),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -621,7 +621,7 @@ class PaymentGenerator:
         try:
             # Load real order data using the existing function
             order_data = load_order_data(
-                self.config.get('order_data', '../../data/raw/orders'),
+                self.config.get('order_data', '../data/raw/orders'),
                 self.config.get('order_format', 'json')
             )
             

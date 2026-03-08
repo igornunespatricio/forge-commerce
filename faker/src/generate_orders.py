@@ -30,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('generate_orders.log'),
+        logging.FileHandler('logs/generate_orders.log'),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -437,8 +437,8 @@ class OrderGenerator:
         try:
             # Load real customer and product data using the existing function
             customer_data, product_data = load_reference_data(
-                self.config.get('customer_data', '../../data/raw/customers'),
-                self.config.get('product_data', '../../data/raw/products'),
+                self.config.get('customer_data', '../data/raw/customers'),
+                self.config.get('product_data', '../data/raw/products'),
                 self.config.get('customer_format', 'json'),
                 self.config.get('product_format', 'json')
             )
