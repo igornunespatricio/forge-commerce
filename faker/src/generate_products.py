@@ -30,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('generate_products.log'),
+        logging.FileHandler('logs/generate_products.log'),
         logging.StreamHandler(sys.stdout)
     ]
 )
