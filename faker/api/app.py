@@ -27,11 +27,6 @@ from models import (
     PaymentResponse
 )
 from config import config
-from src.generate_customers import CustomerGenerator
-from src.generate_products import ProductGenerator
-from src.generate_orders import OrderGenerator
-from src.generate_payments import PaymentGenerator
-
 
 # Configure logging
 logging.basicConfig(
@@ -39,10 +34,15 @@ logging.basicConfig(
     format=config.LOG_FORMAT,
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('api.log')
+        logging.FileHandler('logs/api.log')
     ]
 )
 logger = logging.getLogger(__name__)
+
+from src.generate_customers import CustomerGenerator
+from src.generate_products import ProductGenerator
+from src.generate_orders import OrderGenerator
+from src.generate_payments import PaymentGenerator
 
 
 # Initialize FastAPI app
