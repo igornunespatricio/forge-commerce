@@ -1,6 +1,6 @@
 # Makefile for Faker Data Generation
 
-.PHONY: help customers products orders payments clean install
+.PHONY: help customers products orders payments clean install api
 
 # Configuration variables
 DATA_DIR = ../data/raw
@@ -76,3 +76,8 @@ clean:
 	@rm -rf $(DATA_DIR)/orders/*.csv $(DATA_DIR)/orders/*.json $(DATA_DIR)/orders/*.parquet
 	@rm -rf $(DATA_DIR)/payments/*.csv $(DATA_DIR)/payments/*.json $(DATA_DIR)/payments/*.parquet
 	@echo "Clean completed!"
+
+#Serve API
+api:
+	@echo "Starting API server..."
+	@poetry run python api/run.py
