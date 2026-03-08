@@ -609,7 +609,7 @@ class PaymentGenerator:
         logger.info(f"Saved batch {batch_num} to {filepath}")
         return str(filepath)
     
-    def generate_single_payment(self, payment_id: int = None, order_id: int = None) -> Dict:
+    def generate_single_payment(self, payment_id: int = None) -> Dict:
         """Generate a single payment record for API use using generate_batch method."""
         if payment_id is None:
             payment_id = self.faker.random_int(min=1, max=999999999)
