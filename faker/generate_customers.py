@@ -226,6 +226,31 @@ class CustomerGenerator:
         logger.info(f"Saved batch {batch_num} to {filepath}")
         return str(filepath)
     
+    def generate_single_customer(self, customer_id: int = None) -> Dict:
+        """Generate a single customer record for API use using generate_batch method."""
+        if customer_id is None:
+            customer_id = self.faker.random_int(min=1, max=999999999)
+        
+        # Temporarily set batch_size to 1 for single customer generation
+        original_batch_size = self.config.get('batch_size', 1)
+        self.config['batch_size'] = 1
+        
+        try:
+            # Use generate_batch method with batch size 1
+            batch_data = self.generate_batch(batch_size=1, batch_num=0)
+            
+            # Extract the single customer record from the batch
+            customer_data = batch_data[0]
+            
+            # Override the customer_id if provided
+            if customer_id is not None:
+                customer_data['customer_id'] = customer_id
+            
+            return customer_data
+        finally:
+            # Restore original batch_size
+            self.config['batch_size'] = original_batch_size
+
     def generate_customers(self) -> Dict[str, int]:
         """Generate all customer data in batches."""
         total_records = self.config['total_records']
