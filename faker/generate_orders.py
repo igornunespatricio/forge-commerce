@@ -292,7 +292,7 @@ class OrderGenerator:
                 'delivery_address': customer['address'],
                 'delivery_city': customer['city'],
                 'delivery_country': customer['country'],
-                'delivery_postal_code': customer['postal_code'],
+                'delivery_postal_code': str(customer['postal_code']),  # Convert to string for API compatibility
                 'order_items': order_items,
                 'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -425,6 +425,39 @@ class OrderGenerator:
         
         return True
     
+    def generate_single_order(self, order_id: int = None, customer_id: int = None) -> Dict:
+        """Generate a single order record for API use using generate_batch method."""
+        if order_id is None:
+            order_id = self.faker.random_int(min=1, max=999999999)
+        
+        # Temporarily set batch_size to 1 for single order generation
+        original_batch_size = self.config.get('batch_size', 1)
+        self.config['batch_size'] = 1
+        
+        try:
+            # Load real customer and product data using the existing function
+            customer_data, product_data = load_reference_data(
+                self.config.get('customer_data', '../../data/raw/customers'),
+                self.config.get('product_data', '../../data/raw/products'),
+                self.config.get('customer_format', 'json'),
+                self.config.get('product_format', 'json')
+            )
+            
+            # Use generate_batch method with batch size 1
+            batch_data = self.generate_batch(batch_size=1, batch_num=0, customer_data=customer_data, product_data=product_data)
+            
+            # Extract the single order record from the batch
+            order_data = batch_data[0]
+            
+            # Override the order_id if provided
+            if order_id is not None:
+                order_data['order_id'] = order_id
+            
+            return order_data
+        finally:
+            # Restore original batch_size
+            self.config['batch_size'] = original_batch_size
+
     def save_batch(self, data: List[Dict], batch_num: int, output_format: str = 'csv') -> str:
         """Save a batch of order data to file."""
         if not self.validate_data(data):

@@ -609,6 +609,37 @@ class PaymentGenerator:
         logger.info(f"Saved batch {batch_num} to {filepath}")
         return str(filepath)
     
+    def generate_single_payment(self, payment_id: int = None) -> Dict:
+        """Generate a single payment record for API use using generate_batch method."""
+        if payment_id is None:
+            payment_id = self.faker.random_int(min=1, max=999999999)
+        
+        # Temporarily set batch_size to 1 for single payment generation
+        original_batch_size = self.config.get('batch_size', 1)
+        self.config['batch_size'] = 1
+        
+        try:
+            # Load real order data using the existing function
+            order_data = load_order_data(
+                self.config.get('order_data', '../../data/raw/orders'),
+                self.config.get('order_format', 'json')
+            )
+            
+            # Use generate_batch method with batch size 1
+            batch_data = self.generate_batch(batch_size=1, batch_num=0, order_data=order_data)
+            
+            # Extract the single payment record from the batch
+            payment_data = batch_data[0]
+            
+            # Override the payment_id if provided
+            if payment_id is not None:
+                payment_data['payment_id'] = payment_id
+            
+            return payment_data
+        finally:
+            # Restore original batch_size
+            self.config['batch_size'] = original_batch_size
+
     def generate_payments(self, order_data: List[Dict]) -> Dict[str, int]:
         """Generate all payment data in batches."""
         total_records = self.config['total_records']

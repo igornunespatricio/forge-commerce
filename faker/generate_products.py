@@ -361,6 +361,31 @@ class ProductGenerator:
         logger.info(f"Saved batch {batch_num} to {filepath}")
         return str(filepath)
     
+    def generate_single_product(self, product_id: int = None) -> Dict:
+        """Generate a single product record for API use using generate_batch method."""
+        if product_id is None:
+            product_id = self.faker.random_int(min=1, max=999999999)
+        
+        # Temporarily set batch_size to 1 for single product generation
+        original_batch_size = self.config.get('batch_size', 1)
+        self.config['batch_size'] = 1
+        
+        try:
+            # Use generate_batch method with batch size 1
+            batch_data = self.generate_batch(batch_size=1, batch_num=0)
+            
+            # Extract the single product record from the batch
+            product_data = batch_data[0]
+            
+            # Override the product_id if provided
+            if product_id is not None:
+                product_data['product_id'] = product_id
+            
+            return product_data
+        finally:
+            # Restore original batch_size
+            self.config['batch_size'] = original_batch_size
+
     def generate_products(self) -> Dict[str, int]:
         """Generate all product data in batches."""
         total_records = self.config['total_records']
