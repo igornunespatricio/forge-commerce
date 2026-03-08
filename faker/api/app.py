@@ -27,10 +27,10 @@ from models import (
     PaymentResponse
 )
 from config import config
-from generate_customers import CustomerGenerator
-from generate_products import ProductGenerator
-from generate_orders import OrderGenerator
-from generate_payments import PaymentGenerator
+from src.generate_customers import CustomerGenerator
+from src.generate_products import ProductGenerator
+from src.generate_orders import OrderGenerator
+from src.generate_payments import PaymentGenerator
 
 
 # Configure logging
