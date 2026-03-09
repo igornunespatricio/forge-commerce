@@ -32,8 +32,8 @@ products:
 	@poetry run python $(SCRIPT_DIR)/generate_products.py \
 		--total-records 1000 \
 		--batch-size 100 \
-		--output-dir $(DATA_DIR)/products \
-		--output-format json
+		--output-format json \
+		--bucket-name raw
 
 # Generate order data (placeholder - to be implemented)
 orders:
