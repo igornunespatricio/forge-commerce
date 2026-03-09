@@ -24,6 +24,11 @@ import pandas as pd
 from faker import Faker
 from faker.providers import BaseProvider
 
+# Add the parent directory to Python path to import tools module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from tools.storage_client import StorageClient, StorageClientFactory, upload_csv, upload_json, upload_parquet
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -188,6 +193,9 @@ class PaymentGenerator:
         self.config = config
         self.faker = Faker('en_US')
         self.faker.add_provider(PaymentProvider)
+
+        # MinIO configuration
+        self.storage_client = StorageClientFactory.create_minio_client(config)
         
         # Transaction fees by payment method
         self.transaction_fees = {
@@ -568,47 +576,39 @@ class PaymentGenerator:
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"payments_batch_{batch_num:04d}_{timestamp}"
-        
-        output_path = Path(self.config['output_dir'])
-        output_path.mkdir(parents=True, exist_ok=True)
-        
+        filename_with_prefix = f"{self.config.get('filepath_prefix')}/{filename}.json"
+        filepath = f"{self.config.get('endpoint_url')}/{filename_with_prefix}"
         if output_format.lower() == 'csv':
-            # Flatten payment metadata for CSV output
-            flattened_data = []
-            for payment in data:
-                payment_copy = payment.copy()
-                metadata = payment_copy.pop('payment_metadata', {})
-                
-                # Add payment-level data
-                flattened_data.append({**payment_copy, **metadata})
-            
-            filepath = output_path / f"{filename}.csv"
-            df = pd.DataFrame(flattened_data)
-            df.to_csv(filepath, index=False, encoding='utf-8')
+            raise NotImplementedError("CSV upload is not implemented yet")
             
         elif output_format.lower() == 'json':
-            filepath = output_path / f"{filename}.json"
-            pd.DataFrame(data).to_json(filepath, orient='records', date_format='iso')
+            df = pd.DataFrame(data)
+            success = upload_json(
+                bucket_name=self.config.get('bucket_name'),
+                key=filename_with_prefix,
+                data=df.to_dict(orient='records'),
+                storage_client=self.storage_client
+            )
+            if not success:
+                raise Exception(f"Failed to upload JSON batch {batch_num}")
+            logger.info(f"Uploaded batch {batch_num} to MinIO as {filename}.json")
+            return filepath
             
         elif output_format.lower() == 'parquet':
-            # Flatten for Parquet format
-            flattened_data = []
-            for payment in data:
-                payment_copy = payment.copy()
-                metadata = payment_copy.pop('payment_metadata', {})
-                
-                flattened_data.append({**payment_copy, **metadata})
-            
-            filepath = output_path / f"{filename}.parquet"
-            df = pd.DataFrame(flattened_data)
-            df.to_parquet(filepath, index=False)
+            raise NotImplementedError("Parquet upload is not implemented yet")
             
         else:
             raise ValueError(f"Unsupported output format: {output_format}")
-        
-        logger.info(f"Saved batch {batch_num} to {filepath}")
-        return str(filepath)
     
+    def _load_reference_data_from_storage(self) -> Tuple[List[Dict], List[Dict]]:
+        """Load orders data from storage using storage client."""
+        orders_data: List[Dict] = []
+        orders_data_list_objects = self.storage_client.list_objects(self.config.get('bucket_name'),'orders')
+        for orders_data_object in orders_data_list_objects:
+            orders_data_list = self.storage_client.download_object_as_json(self.config.get('bucket_name'), orders_data_object)
+            orders_data.extend(orders_data_list)
+        return orders_data
+
     def generate_single_payment(self, payment_id: int = None) -> Dict:
         """Generate a single payment record for API use using generate_batch method."""
         if payment_id is None:
@@ -620,10 +620,7 @@ class PaymentGenerator:
         
         try:
             # Load real order data using the existing function
-            order_data = load_order_data(
-                self.config.get('order_data', '../data/raw/orders'),
-                self.config.get('order_format', 'json')
-            )
+            order_data = self._load_reference_data_from_storage()
             
             # Use generate_batch method with batch size 1
             batch_data = self.generate_batch(batch_size=1, batch_num=0, order_data=order_data)
@@ -689,47 +686,16 @@ def parse_arguments():
                        help='Total number of payment records to generate (default: 500,000)')
     parser.add_argument('--batch-size', type=int, default=25000,
                        help='Number of records per batch (default: 25,000)')
-    parser.add_argument('--output-dir', type=str, default='data/raw/payments',
-                       help='Output directory for generated files (default: data/raw/payments)')
     parser.add_argument('--output-format', type=str, choices=['csv', 'json', 'parquet'], 
                        default='csv', help='Output file format (default: csv)')
     parser.add_argument('--start-id', type=int, default=1,
                        help='Starting payment ID (default: 1)')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed for reproducible results (default: 42)')
-    parser.add_argument('--order-data', type=str, default='data/raw/orders',
-                       help='Path to order data directory (default: data/raw/orders)')
-    parser.add_argument('--order-format', type=str, choices=['csv', 'json', 'parquet'], 
-                       default='csv', help='Order data file format (default: csv)')
-    
+    parser.add_argument('--bucket-name', type=str, default='forge-commerce', help='Bucket Name (default: forge-commerce)')
+    parser.add_argument('--endpoint-url', type=str, default='http://localhost:9000', help='Endpoint URL (default: http://localhost:9000)')
+    parser.add_argument('--filepath-prefix', type=str, default='payments', help='Filepath prefix (default: payments)')    
     return parser.parse_args()
-
-
-def load_order_data(order_dir: str, order_format: str = 'csv') -> List[Dict]:
-    """Load order data for payment generation."""
-    logger.info(f"Loading order data from {order_dir} (format: {order_format})")
-    
-    # Load order data
-    order_pattern = f"*.{order_format}"
-    order_files = list(Path(order_dir).glob(order_pattern))
-    if not order_files:
-        raise ValueError(f"No order data files found in {order_dir} with pattern {order_pattern}")
-    
-    order_data = []
-    for file_path in order_files:
-        if order_format == 'csv':
-            df = pd.read_csv(file_path)
-        elif order_format == 'json':
-            df = pd.read_json(file_path, orient='records')
-        elif order_format == 'parquet':
-            df = pd.read_parquet(file_path)
-        else:
-            raise ValueError(f"Unsupported order data format: {order_format}")
-        order_data.extend(df.to_dict('records'))
-    
-    logger.info(f"Loaded {len(order_data):,} orders")
-    
-    return order_data
 
 
 def main():
@@ -739,20 +705,17 @@ def main():
     # Set random seed for reproducibility
     random.seed(args.seed)
     
-    # Load order data
-    try:
-        order_data = load_order_data(args.order_data, args.order_format)
-    except Exception as e:
-        logger.error(f"Failed to load order data: {str(e)}")
-        sys.exit(1)
-    
     # Configuration
     config = {
         'total_records': args.total_records,
         'batch_size': args.batch_size,
-        'output_dir': args.output_dir,
         'output_format': args.output_format,
-        'start_id': args.start_id
+        'start_id': args.start_id,
+        'endpoint_url': 'http://localhost:9000',
+        'aws_access_key_id': 'admin',
+        'aws_secret_access_key': 'password',
+        'bucket_name': args.bucket_name,
+        'filepath_prefix': args.filepath_prefix
     }
     
     logger.info(f"Payment generation configuration: {config}")
@@ -761,6 +724,7 @@ def main():
     generator = PaymentGenerator(config)
     
     try:
+        order_data = generator._load_reference_data_from_storage()
         results = generator.generate_payments(order_data)
         logger.info(f"Generation completed successfully:")
         logger.info(f"  Total records: {results['total_records']:,}")

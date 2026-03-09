@@ -29,6 +29,10 @@ class APIConfig:
         'start_date': datetime(2020, 1, 1),
         'end_date': datetime(2024, 12, 31),
         'start_id': 1,
+        'endpoint_url': 'http://localhost:9000',
+        'aws_access_key_id': 'admin',
+        'aws_secret_access_key': 'password',
+        'bucket_name': 'raw',
     }
     
     # Validation settings
