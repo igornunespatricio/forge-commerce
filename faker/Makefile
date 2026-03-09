@@ -50,10 +50,8 @@ payments:
 	@poetry run python $(SCRIPT_DIR)/generate_payments.py \
 		--total-records 5000 \
 		--batch-size 500 \
-		--output-dir $(DATA_DIR)/payments \
 		--output-format json \
-		--order-data $(DATA_DIR)/orders \
-		--order-format json
+		--bucket-name raw
 
 # Generate all data types
 all: customers products orders payments
