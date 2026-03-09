@@ -10,7 +10,7 @@ Author: Data Engineering Team
 
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError, ClientError
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 from pathlib import Path
 import logging
 import io
@@ -172,6 +172,24 @@ class StorageClient:
         try:
             response = self.client.get_object(Bucket=bucket_name, Key=key)
             return response['Body'].read().decode('utf-8')
+        except Exception as e:
+            logger.error(f"Error downloading object: {str(e)}")
+            return None
+
+    def download_object_as_json(self, bucket_name: str, key: str) -> List[dict]:
+        """
+        Download an object as JSON.
+
+        Args:
+            bucket_name: Name of the bucket
+            key: Object key (path)
+
+        Returns:
+            Optional[dict]: Object content as JSON, or None if error
+        """
+        try:
+            response = self.client.get_object(Bucket=bucket_name, Key=key)
+            return json.loads(response['Body'].read().decode('utf-8'))
         except Exception as e:
             logger.error(f"Error downloading object: {str(e)}")
             return None
