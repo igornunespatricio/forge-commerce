@@ -25,6 +25,10 @@ from faker import Faker
 from faker.providers import BaseProvider
 import numpy as np
 
+# Add the parent directory to Python path to import tools module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from tools.storage_client import StorageClient, StorageClientFactory, upload_csv, upload_json, upload_parquet
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -92,6 +96,9 @@ class CustomerGenerator:
         self.config = config
         self.faker = Faker('en_US')
         self.faker.add_provider(CustomerProvider)
+        
+        # MinIO configuration
+        self.storage_client = StorageClientFactory.create_minio_client(config)
         
         # Geographic distribution (realistic US distribution)
         self.geographic_distribution = [
@@ -199,32 +206,35 @@ class CustomerGenerator:
         return True
     
     def save_batch(self, data: List[Dict], batch_num: int, output_format: str = 'csv') -> str:
-        """Save a batch of customer data to file."""
+        """Save a batch of customer data to MinIO."""
         if not self.validate_data(data):
             raise ValueError("Data validation failed")
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"customers_batch_{batch_num:04d}_{timestamp}"
         
-        output_path = Path(self.config['output_dir'])
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        if output_format.lower() == 'csv':
-            filepath = output_path / f"{filename}.csv"
-            df = pd.DataFrame(data)
-            df.to_csv(filepath, index=False, encoding='utf-8')
-        elif output_format.lower() == 'json':
-            filepath = output_path / f"{filename}.json"
-            pd.DataFrame(data).to_json(filepath, orient='records', date_format='iso')
-        elif output_format.lower() == 'parquet':
-            filepath = output_path / f"{filename}.parquet"
-            df = pd.DataFrame(data)
-            df.to_parquet(filepath, index=False)
-        else:
-            raise ValueError(f"Unsupported output format: {output_format}")
-        
-        logger.info(f"Saved batch {batch_num} to {filepath}")
-        return str(filepath)
+        try:
+            if output_format.lower() == 'csv':
+                raise NotImplementedError("CSV upload is not implemented yet")
+            elif output_format.lower() == 'json':
+                df = pd.DataFrame(data)
+                success = upload_json(
+                    bucket_name=self.config.get('bucket_name'),
+                    key=f"{filename}.json",
+                    data=df.to_dict(orient='records'),
+                    storage_client=self.storage_client
+                )
+                if not success:
+                    raise Exception(f"Failed to upload JSON batch {batch_num}")
+                logger.info(f"Uploaded batch {batch_num} to MinIO as {filename}.json")
+                return f"{self.config.get('endpoint_url')}/{self.config.get('bucket_name')}/{filename}.json"
+            elif output_format.lower() == 'parquet':
+                raise NotImplementedError("Parquet upload is not implemented yet")
+            else:
+                raise ValueError(f"Unsupported output format: {output_format}")
+        except Exception as e:
+            logger.error(f"Error uploading batch {batch_num} to MinIO: {str(e)}")
+            raise
     
     def generate_single_customer(self, customer_id: int = None) -> Dict:
         """Generate a single customer record for API use using generate_batch method."""
@@ -299,8 +309,6 @@ def parse_arguments():
                        help='Total number of customer records to generate (default: 1,000,000)')
     parser.add_argument('--batch-size', type=int, default=50000,
                        help='Number of records per batch (default: 50,000)')
-    parser.add_argument('--output-dir', type=str, default='data/raw/customers',
-                       help='Output directory for generated files (default: data/raw/customers)')
     parser.add_argument('--output-format', type=str, choices=['csv', 'json', 'parquet'], 
                        default='csv', help='Output file format (default: csv)')
     parser.add_argument('--start-date', type=str, default='2020-01-01',
@@ -311,7 +319,8 @@ def parse_arguments():
                        help='Starting customer ID (default: 1)')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed for reproducible results (default: 42)')
-    
+    parser.add_argument('--bucket-name', type=str, default='forge-commerce', help='Bucket Name (default: forge-commerce)')
+    parser.add_argument('--endpoint-url', type=str, default='http://localhost:9000', help='Endpoint URL (default: http://localhost:9000)')
     return parser.parse_args()
 
 
@@ -327,11 +336,14 @@ def main():
     config = {
         'total_records': args.total_records,
         'batch_size': args.batch_size,
-        'output_dir': args.output_dir,
         'output_format': args.output_format,
         'start_date': datetime.strptime(args.start_date, '%Y-%m-%d'),
         'end_date': datetime.strptime(args.end_date, '%Y-%m-%d'),
-        'start_id': args.start_id
+        'start_id': args.start_id,
+        'endpoint_url': 'http://localhost:9000',
+        'aws_access_key_id': 'admin',
+        'aws_secret_access_key': 'password',
+        'bucket_name': args.bucket_name
     }
     
     logger.info(f"Customer generation configuration: {config}")

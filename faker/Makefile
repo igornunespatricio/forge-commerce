@@ -9,7 +9,7 @@ SCRIPT_DIR = src
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  customers  - Generate customer data (1000 rows, batch size 100, JSON output)"
+	@echo "  customers  - Generate customer data (1M rows, batch size 50K, JSON output)"
 	@echo "  products   - Generate product data"
 	@echo "  orders     - Generate order data"
 	@echo "  payments   - Generate payment data"
@@ -23,8 +23,8 @@ customers:
 	@poetry run python $(SCRIPT_DIR)/generate_customers.py \
 		--total-records 1000 \
 		--batch-size 100 \
-		--output-dir $(DATA_DIR)/customers \
-		--output-format json
+		--output-format json \
+		--bucket-name raw
 
 # Generate product data (placeholder - to be implemented)
 products:
