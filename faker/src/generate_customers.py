@@ -212,7 +212,8 @@ class CustomerGenerator:
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"customers_batch_{batch_num:04d}_{timestamp}"
-        
+        filename_with_prefix = f"{self.config.get('filepath_prefix')}/{filename}.json"
+        filepath = f"{self.config.get('endpoint_url')}/{filename_with_prefix}"
         try:
             if output_format.lower() == 'csv':
                 raise NotImplementedError("CSV upload is not implemented yet")
@@ -220,14 +221,14 @@ class CustomerGenerator:
                 df = pd.DataFrame(data)
                 success = upload_json(
                     bucket_name=self.config.get('bucket_name'),
-                    key=f"{filename}.json",
+                    key=filename_with_prefix,
                     data=df.to_dict(orient='records'),
                     storage_client=self.storage_client
                 )
                 if not success:
                     raise Exception(f"Failed to upload JSON batch {batch_num}")
                 logger.info(f"Uploaded batch {batch_num} to MinIO as {filename}.json")
-                return f"{self.config.get('endpoint_url')}/{self.config.get('bucket_name')}/{filename}.json"
+                return filepath
             elif output_format.lower() == 'parquet':
                 raise NotImplementedError("Parquet upload is not implemented yet")
             else:
@@ -321,6 +322,7 @@ def parse_arguments():
                        help='Random seed for reproducible results (default: 42)')
     parser.add_argument('--bucket-name', type=str, default='forge-commerce', help='Bucket Name (default: forge-commerce)')
     parser.add_argument('--endpoint-url', type=str, default='http://localhost:9000', help='Endpoint URL (default: http://localhost:9000)')
+    parser.add_argument('--filepath-prefix', type=str, default='customers', help='Filepath prefix (default: customers)')
     return parser.parse_args()
 
 
@@ -343,7 +345,8 @@ def main():
         'endpoint_url': 'http://localhost:9000',
         'aws_access_key_id': 'admin',
         'aws_secret_access_key': 'password',
-        'bucket_name': args.bucket_name
+        'bucket_name': args.bucket_name,
+        'filepath_prefix': args.filepath_prefix
     }
     
     logger.info(f"Customer generation configuration: {config}")
