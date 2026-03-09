@@ -41,12 +41,8 @@ orders:
 	@poetry run python $(SCRIPT_DIR)/generate_orders.py \
 		--total-records 5000 \
 		--batch-size 500 \
-		--output-dir $(DATA_DIR)/orders \
 		--output-format json \
-		--customer-data $(DATA_DIR)/customers \
-		--product-data $(DATA_DIR)/products \
-		--customer-format json \
-		--product-format json
+		--bucket-name raw
 
 # Generate payment data (placeholder - to be implemented)
 payments:

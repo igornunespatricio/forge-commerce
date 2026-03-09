@@ -25,6 +25,10 @@ from faker import Faker
 from faker.providers import BaseProvider
 import numpy as np
 
+# Add the parent directory to Python path to import tools module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+from tools.storage_client import StorageClient, StorageClientFactory, upload_csv, upload_json, upload_parquet
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -155,6 +159,9 @@ class OrderGenerator:
         self.config = config
         self.faker = Faker('en_US')
         self.faker.add_provider(OrderProvider)
+
+        # MinIO configuration
+        self.storage_client = StorageClientFactory.create_minio_client(config)
         
         # Shipping costs by method
         self.shipping_costs = {
@@ -435,13 +442,8 @@ class OrderGenerator:
         self.config['batch_size'] = 1
         
         try:
-            # Load real customer and product data using the existing function
-            customer_data, product_data = load_reference_data(
-                self.config.get('customer_data', '../data/raw/customers'),
-                self.config.get('product_data', '../data/raw/products'),
-                self.config.get('customer_format', 'json'),
-                self.config.get('product_format', 'json')
-            )
+            # Load customer and product data from storage using storage client
+            customer_data, product_data = self._load_reference_data_from_storage()
             
             # Use generate_batch method with batch size 1
             batch_data = self.generate_batch(batch_size=1, batch_num=0, customer_data=customer_data, product_data=product_data)
@@ -457,6 +459,21 @@ class OrderGenerator:
         finally:
             # Restore original batch_size
             self.config['batch_size'] = original_batch_size
+    
+    def _load_reference_data_from_storage(self) -> Tuple[List[Dict], List[Dict]]:
+        """Load customer and product data from storage using storage client."""
+        customer_data: List[Dict] = []
+        product_data: List[Dict] = []
+        customer_data_list_objects = self.storage_client.list_objects(self.config.get('bucket_name'),'customers')
+        for customer_data_object in customer_data_list_objects:
+                customer_data_list = self.storage_client.download_object_as_json(self.config.get('bucket_name'), customer_data_object)
+                customer_data.extend(customer_data_list)
+        product_data_list_objects = self.storage_client.list_objects(self.config.get('bucket_name'),'products')
+        for product_data_object in product_data_list_objects:
+                product_data_list = self.storage_client.download_object_as_json(self.config.get('bucket_name'), product_data_object)
+                product_data.extend(product_data_list)
+        # product_data = self.storage_client.download_object_as_string('products')
+        return customer_data, product_data
 
     def save_batch(self, data: List[Dict], batch_num: int, output_format: str = 'csv') -> str:
         """Save a batch of order data to file."""
@@ -465,53 +482,30 @@ class OrderGenerator:
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"orders_batch_{batch_num:04d}_{timestamp}"
-        
-        output_path = Path(self.config['output_dir'])
-        output_path.mkdir(parents=True, exist_ok=True)
-        
-        if output_format.lower() == 'csv':
-            # Flatten order items for CSV output
-            flattened_data = []
-            for order in data:
-                order_copy = order.copy()
-                order_items = order_copy.pop('order_items', [])
-                
-                # Add order-level data
-                flattened_data.append(order_copy)
-                
-                # Add item-level data
-                for item in order_items:
-                    item_record = {**order_copy, **item}
-                    flattened_data.append(item_record)
-            
-            filepath = output_path / f"{filename}.csv"
-            df = pd.DataFrame(flattened_data)
-            df.to_csv(filepath, index=False, encoding='utf-8')
-            
-        elif output_format.lower() == 'json':
-            filepath = output_path / f"{filename}.json"
-            pd.DataFrame(data).to_json(filepath, orient='records', date_format='iso')
-            
-        elif output_format.lower() == 'parquet':
-            # Flatten for Parquet format
-            flattened_data = []
-            for order in data:
-                order_copy = order.copy()
-                order_items = order_copy.pop('order_items', [])
-                
-                for item in order_items:
-                    item_record = {**order_copy, **item}
-                    flattened_data.append(item_record)
-            
-            filepath = output_path / f"{filename}.parquet"
-            df = pd.DataFrame(flattened_data)
-            df.to_parquet(filepath, index=False)
-            
-        else:
-            raise ValueError(f"Unsupported output format: {output_format}")
-        
-        logger.info(f"Saved batch {batch_num} to {filepath}")
-        return str(filepath)
+        filename_with_prefix = f"{self.config.get('filepath_prefix')}/{filename}.json"
+        filepath = f"{self.config.get('endpoint_url')}/{filename_with_prefix}"
+        try:
+            if output_format.lower() == 'csv':
+                raise NotImplementedError("CSV upload is not implemented yet")
+            elif output_format.lower() == 'json':
+                df = pd.DataFrame(data)
+                success = upload_json(
+                    bucket_name=self.config.get('bucket_name'),
+                    key=filename_with_prefix,
+                    data=df.to_dict(orient='records'),
+                    storage_client=self.storage_client
+                )
+                if not success:
+                    raise Exception(f"Failed to upload JSON batch {batch_num}")
+                logger.info(f"Uploaded batch {batch_num} to MinIO as {filename}.json")
+                return filepath
+            elif output_format.lower() == 'parquet':
+                raise NotImplementedError("Parquet upload is not implemented yet")
+            else:
+                raise ValueError(f"Unsupported output format: {output_format}")
+        except Exception as e:
+            logger.error(f"Error uploading batch {batch_num} to MinIO: {str(e)}")
+            raise
     
     def generate_orders(self, customer_data: List[Dict], product_data: List[Dict]) -> Dict[str, int]:
         """Generate all order data in batches."""
@@ -561,9 +555,7 @@ def parse_arguments():
     parser.add_argument('--total-records', type=int, default=500000, 
                        help='Total number of order records to generate (default: 500,000)')
     parser.add_argument('--batch-size', type=int, default=25000,
-                       help='Number of records per batch (default: 25,000)')
-    parser.add_argument('--output-dir', type=str, default='data/raw/orders',
-                       help='Output directory for generated files (default: data/raw/orders)')
+                       help='Number of records per batch (default: 25,000)'),
     parser.add_argument('--output-format', type=str, choices=['csv', 'json', 'parquet'], 
                        default='csv', help='Output file format (default: csv)')
     parser.add_argument('--start-date', type=str, default='2020-01-01',
@@ -574,62 +566,12 @@ def parse_arguments():
                        help='Starting order ID (default: 1)')
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed for reproducible results (default: 42)')
-    parser.add_argument('--customer-data', type=str, default='data/raw/customers',
-                       help='Path to customer data directory (default: data/raw/customers)')
-    parser.add_argument('--product-data', type=str, default='data/raw/products',
-                       help='Path to product data directory (default: data/raw/products)')
-    parser.add_argument('--customer-format', type=str, choices=['csv', 'json', 'parquet'], 
-                       default='csv', help='Customer data file format (default: csv)')
-    parser.add_argument('--product-format', type=str, choices=['csv', 'json', 'parquet'], 
-                       default='csv', help='Product data file format (default: csv)')
-    
+    parser.add_argument('--bucket-name', type=str, default='forge-commerce', help='Bucket Name (default: forge-commerce)')
+    parser.add_argument('--endpoint-url', type=str, default='http://localhost:9000', help='Endpoint URL (default: http://localhost:9000)')
+    parser.add_argument('--filepath-prefix', type=str, default='orders', help='Filepath prefix (default: orders)')
     return parser.parse_args()
 
 
-def load_reference_data(customer_dir: str, product_dir: str, customer_format: str = 'csv', product_format: str = 'csv') -> Tuple[List[Dict], List[Dict]]:
-    """Load customer and product data for order generation."""
-    logger.info(f"Loading customer data from {customer_dir} (format: {customer_format})")
-    logger.info(f"Loading product data from {product_dir} (format: {product_format})")
-    
-    # Load customer data
-    customer_pattern = f"*.{customer_format}"
-    customer_files = list(Path(customer_dir).glob(customer_pattern))
-    if not customer_files:
-        raise ValueError(f"No customer data files found in {customer_dir} with pattern {customer_pattern}")
-    
-    customer_data = []
-    for file_path in customer_files:
-        if customer_format == 'csv':
-            df = pd.read_csv(file_path)
-        elif customer_format == 'json':
-            df = pd.read_json(file_path, orient='records')
-        elif customer_format == 'parquet':
-            df = pd.read_parquet(file_path)
-        else:
-            raise ValueError(f"Unsupported customer data format: {customer_format}")
-        customer_data.extend(df.to_dict('records'))
-    
-    # Load product data
-    product_pattern = f"*.{product_format}"
-    product_files = list(Path(product_dir).glob(product_pattern))
-    if not product_files:
-        raise ValueError(f"No product data files found in {product_dir} with pattern {product_pattern}")
-    
-    product_data = []
-    for file_path in product_files:
-        if product_format == 'csv':
-            df = pd.read_csv(file_path)
-        elif product_format == 'json':
-            df = pd.read_json(file_path, orient='records')
-        elif product_format == 'parquet':
-            df = pd.read_parquet(file_path)
-        else:
-            raise ValueError(f"Unsupported product data format: {product_format}")
-        product_data.extend(df.to_dict('records'))
-    
-    logger.info(f"Loaded {len(customer_data):,} customers and {len(product_data):,} products")
-    
-    return customer_data, product_data
 
 
 def main():
@@ -640,27 +582,19 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     
-    # Load reference data
-    try:
-        customer_data, product_data = load_reference_data(
-            args.customer_data, 
-            args.product_data,
-            args.customer_format,
-            args.product_format
-        )
-    except Exception as e:
-        logger.error(f"Failed to load reference data: {str(e)}")
-        sys.exit(1)
-    
     # Configuration
     config = {
         'total_records': args.total_records,
         'batch_size': args.batch_size,
-        'output_dir': args.output_dir,
         'output_format': args.output_format,
         'start_date': datetime.strptime(args.start_date, '%Y-%m-%d'),
         'end_date': datetime.strptime(args.end_date, '%Y-%m-%d'),
-        'start_id': args.start_id
+        'start_id': args.start_id,
+        'endpoint_url': 'http://localhost:9000',
+        'aws_access_key_id': 'admin',
+        'aws_secret_access_key': 'password',
+        'bucket_name': args.bucket_name,
+        'filepath_prefix': args.filepath_prefix
     }
     
     logger.info(f"Order generation configuration: {config}")
@@ -669,6 +603,9 @@ def main():
     generator = OrderGenerator(config)
     
     try:
+        # Load reference data from storage
+        customer_data, product_data = generator._load_reference_data_from_storage()
+        
         results = generator.generate_orders(customer_data, product_data)
         logger.info(f"Generation completed successfully:")
         logger.info(f"  Total records: {results['total_records']:,}")
