@@ -620,10 +620,7 @@ class PaymentGenerator:
         
         try:
             # Load real order data using the existing function
-            order_data = load_order_data(
-                self.config.get('order_data', '../data/raw/orders'),
-                self.config.get('order_format', 'json')
-            )
+            order_data = self._load_reference_data_from_storage()
             
             # Use generate_batch method with batch size 1
             batch_data = self.generate_batch(batch_size=1, batch_num=0, order_data=order_data)
