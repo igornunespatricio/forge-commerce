@@ -3,7 +3,6 @@
 .PHONY: help customers products orders payments clean install api
 
 # Configuration variables
-DATA_DIR = ../data/raw
 SCRIPT_DIR = src
 
 # Default target
@@ -61,15 +60,6 @@ all: customers products orders payments
 install:
 	@echo "Installing dependencies with Poetry..."
 	@poetry install
-
-# Clean generated data files
-clean:
-	@echo "Cleaning generated data files..."
-	@rm -rf $(DATA_DIR)/customers/*.csv $(DATA_DIR)/customers/*.json $(DATA_DIR)/customers/*.parquet
-	@rm -rf $(DATA_DIR)/products/*.csv $(DATA_DIR)/products/*.json $(DATA_DIR)/products/*.parquet
-	@rm -rf $(DATA_DIR)/orders/*.csv $(DATA_DIR)/orders/*.json $(DATA_DIR)/orders/*.parquet
-	@rm -rf $(DATA_DIR)/payments/*.csv $(DATA_DIR)/payments/*.json $(DATA_DIR)/payments/*.parquet
-	@echo "Clean completed!"
 
 #Serve API
 api:
