@@ -111,7 +111,6 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./spark:/app
       - ./spark/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
       - ./spark/notebooks:/home/jovyan/notebooks
     environment:
@@ -126,7 +125,6 @@ services:
 
 volumes:
   minio_data:
-  spark-inputs:
 
 networks:
   minio-network:
