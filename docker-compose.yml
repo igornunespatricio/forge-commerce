@@ -51,8 +51,8 @@ services:
     hostname: spark-master
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
     ports:
-      - "7077:7077"   # Porta para comunicação com workers
-      - "8080:8080"   # UI do Spark Master
+      - "7077:7077"   # Worker's communication port
+      - "8080:8080"   # Master UI
     environment:
       - SPARK_HOME=/opt/spark
     networks:
@@ -67,7 +67,7 @@ services:
     depends_on:
       - spark-master
     ports:
-      - "8081:8081"   # UI do Spark Worker 1
+      - "8081:8081"   # Worker 1 UI port
     environment:
       - SPARK_HOME=/opt/spark
     networks:
@@ -82,30 +82,46 @@ services:
     depends_on:
       - spark-master
     ports:
-      - "8082:8081"  # Worker 2 exposto na porta 8082
+      - "8082:8081"  # Worker 2 UI port
     environment:
       - SPARK_HOME=/opt/spark
     networks:
       - spark-network
+  
+    # For batch job submissions
+  spark-submit:
+    build:
+      context: ./spark
+    container_name: spark-submit
+    command: sleep infinity
+    volumes:
+      - ./spark:/app  # Mount your Python scripts directory
+    environment:
+      - SPARK_HOME=/opt/spark
+      - SPARK_MASTER=spark://spark-master:7077
+    networks:
+      - spark-network
+    depends_on:
+      - spark-master
 
-
-#   # Jupyter + Spark
-#   jupyter:
-#     image: jupyter/all-spark-notebook:latest
-#     container_name: jupyter
-#     hostname: jupyter
-#     ports:
-#       - "8888:8888"
-#     environment:
-# #      - SPARK_MASTER=spark://spark-master:7077
-#       - SPARK_HOME=/usr/local/spark
-#     volumes:
-#       - ./notebooks:/home/jovyan/work
-#       - ./notebooks:/conf/spark-defaults.conf:/usr/local/spark/conf/spark-defaults.conf
-#     depends_on:
-#       - spark-master
-#     networks:
-#       - spark-network
+  # For interactive Jupyter notebooks
+  jupyter:
+    image: jupyter/pyspark-notebook:x86_64-ubuntu-22.04 # jupyter/pyspark-notebook:latest
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./spark:/app
+      - ./spark/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
+      - ./spark/notebooks:/home/jovyan/notebooks
+    environment:
+      - SPARK_OPTS=--master spark://spark-master:7077
+      - SPARK_HOME=/opt/spark
+      - JUPYTER_ENABLE_LAB=yes
+    networks:
+      - spark-network
+    depends_on:
+      - spark-master
 
 
 volumes:
