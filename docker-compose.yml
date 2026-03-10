@@ -45,7 +45,8 @@ services:
       - minio-network
   
   spark-master:
-    image: apache/spark:latest
+    build:
+      context: ./spark
     container_name: spark-master
     hostname: spark-master
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
@@ -58,7 +59,8 @@ services:
       - spark-network
 
   spark-worker-1:
-    image: apache/spark:latest
+    build:
+      context: ./spark
     container_name: spark-worker-1
     hostname: spark-worker-1
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
@@ -72,7 +74,8 @@ services:
       - spark-network
 
   spark-worker-2:
-    image: apache/spark:latest
+    build:
+      context: ./spark
     container_name: spark-worker-2
     hostname: spark-worker-2
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
