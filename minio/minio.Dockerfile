@@ -2,12 +2,6 @@
 # Based on Alpine Linux for minimal size
 FROM alpine:latest
 
-# Set environment variables
-ENV MINIO_ROOT_USER=admin
-ENV MINIO_ROOT_PASSWORD=password
-ENV MINIO_DOMAIN=localhost
-ENV MINIO_REGION=us-east-1
-
 # Install MinIO and required packages
 RUN apk add --no-cache \
     ca-certificates \
@@ -34,5 +28,5 @@ CMD ["/usr/local/bin/minio", "server", "/data/minio", "--console-address", ":900
 
 # Metadata
 LABEL maintainer="Forge Commerce Team" \
-      version="1.0" \
-      description="MinIO Object Storage Server"
+    version="1.0" \
+    description="MinIO Object Storage Server"
