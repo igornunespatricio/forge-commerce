@@ -8,10 +8,10 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: adminpassword
-      MINIO_DOMAIN: localhost
-      MINIO_REGION: us-east-1
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DOMAIN: ${MINIO_DOMAIN}
+      MINIO_REGION: ${MINIO_REGION}
     volumes:
       - minio_data:/data/minio
     networks:
@@ -28,13 +28,19 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DOMAIN: ${MINIO_DOMAIN}
+      MINIO_REGION: ${MINIO_REGION}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     volumes:
       - .:/workspace
+      - ./tools/minio-setup.sh:/workspace/tools/minio-setup.sh
     entrypoint: >
-      /bin/sh -c " until /usr/bin/mc alias set myminio http://minio:9000 admin adminpassword; do
-        echo 'Waiting for MinIO to be ready...'
-        sleep 5
-      done; /usr/bin/mc mb myminio/raw; /usr/bin/mc mb myminio/cleaned; /usr/bin/mc mb myminio/curated; /usr/bin/mc admin user add myminio/ forge-commerce-user forge-commerce-pass; /usr/bin/mc admin policy set myminio/ readwrite user=forge-commerce-user; exit 0; "
+      /bin/sh -c "chmod +x /workspace/tools/minio-setup.sh && /workspace/tools/minio-setup.sh"
     networks:
       - minio-network
 

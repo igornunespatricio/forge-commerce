@@ -10,7 +10,7 @@ rebuild:
 	@echo "Rebuilding all images"
 	docker compose build
 
-rebuild-all:
+all:
 	@echo "Stopping containers, rebuilding all images, and starting again"
 	docker compose down
 	docker compose build
