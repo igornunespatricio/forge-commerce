@@ -15,7 +15,7 @@ services:
     volumes:
       - minio_data:/data/minio
     networks:
-      - minio-network
+      - default-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
@@ -43,7 +43,7 @@ services:
     entrypoint: >
       /bin/sh -c "chmod +x /workspace/tools/minio-setup.sh && /workspace/tools/minio-setup.sh"
     networks:
-      - minio-network
+      - default-network
 
   spark-master:
     build:
@@ -63,7 +63,7 @@ services:
       - AWS_S3_REGION=us-east-1
       - AWS_S3_PATH_STYLE_ACCESS=true
     networks:
-      - spark-network
+      - default-network
 
   spark-worker-1:
     build:
@@ -84,7 +84,7 @@ services:
       - AWS_S3_REGION=us-east-1
       - AWS_S3_PATH_STYLE_ACCESS=true
     networks:
-      - spark-network
+      - default-network
 
   spark-worker-2:
     build:
@@ -105,7 +105,7 @@ services:
       - AWS_S3_REGION=us-east-1
       - AWS_S3_PATH_STYLE_ACCESS=true
     networks:
-      - spark-network
+      - default-network
     # For batch job submissions
   spark-submit:
     build:
@@ -124,42 +124,40 @@ services:
       - AWS_S3_REGION=us-east-1
       - AWS_S3_PATH_STYLE_ACCESS=true
     networks:
-      - spark-network
+      - default-network
     depends_on:
       - spark-master
-
   # For interactive Jupyter notebooks
-  jupyter:
-    build:
-      context: .
-      dockerfile: ./spark/jupyter.Dockerfile
-    container_name: jupyter
-    ports:
-      - "8888:8888"
-    volumes:
-      - ./spark/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
-      - ./spark/notebooks:/home/jovyan/notebooks
-      - ./.env:/home/jovyan/.env
-    environment:
-      - SPARK_OPTS=--master spark://spark-master:7077
-      - SPARK_HOME=/opt/spark
-      - JUPYTER_ENABLE_LAB=yes
-      - AWS_ACCESS_KEY_ID=forge-commerce-user
-      - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
-      - AWS_S3_ENDPOINT=http://minio:9000
-      - AWS_S3_REGION=us-east-1
-      - AWS_S3_PATH_STYLE_ACCESS=true
-    networks:
-      - spark-network
-    depends_on:
-      - spark-master
+  # jupyter:
+  #   build:
+  #     context: .
+  #     dockerfile: ./spark/jupyter.Dockerfile
+  #   container_name: jupyter
+  #   ports:
+  #     - "8888:8888"
+  #   volumes:
+  #     - ./spark/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
+  #     - ./spark/notebooks:/home/jovyan/notebooks
+  #     - ./.env:/home/jovyan/.env
+  #     - ./tools:/home/jovyan/notebooks/tools
+  #   environment:
+  #     - SPARK_OPTS=--master spark://spark-master:7077
+  #     - SPARK_HOME=/opt/spark
+  #     - JUPYTER_ENABLE_LAB=yes
+  #     - AWS_ACCESS_KEY_ID=forge-commerce-user
+  #     - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
+  #     - AWS_S3_ENDPOINT=http://minio:9000
+  #     - AWS_S3_REGION=us-east-1
+  #     - AWS_S3_PATH_STYLE_ACCESS=true
+  #   networks:
+  #     - spark-network
+  #   depends_on:
+  #     - spark-master
 
 volumes:
   minio_data:
 
 
 networks:
-  minio-network:
-    driver: bridge
-  spark-network:
+  default-network:
     driver: bridge
