@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from dotenv import load_dotenv
 import os
 import sys
@@ -9,11 +11,11 @@ from tools.storage_client import StorageClient
 load_dotenv()
 
 
-print(os.getenv("BUCKET_NAME"))
-print(os.getenv("AWS_S3_ENDPOINT"))
-print(os.getenv("AWS_SECRET_ACCESS_KEY"))
-print(os.getenv("AWS_ACCESS_KEY_ID"))
-print(os.getenv("AWS_S3_REGION"))
+# print(os.getenv("BUCKET_NAME"))
+# print(os.getenv("AWS_S3_ENDPOINT"))
+# print(os.getenv("AWS_SECRET_ACCESS_KEY"))
+# print(os.getenv("AWS_ACCESS_KEY_ID"))
+# print(os.getenv("AWS_S3_REGION"))
 
 
 config = {
@@ -27,13 +29,18 @@ config = {
 
 client = StorageClient(config)
 
-print(client.aws_access_key_id)
-print(client.aws_secret_access_key)
-print(client.region_name)
-print(client.bucket_name)
-print(client.endpoint_url)
-print(client.secure)
-print(client.service_type)
+# print(client.aws_access_key_id)
+# print(client.aws_secret_access_key)
+# print(client.region_name)
+# print(client.bucket_name)
+# print(client.endpoint_url)
+# print(client.secure)
+# print(client.service_type)
+BUCKET = "raw"
+objects = []
+keys = client.list_objects(BUCKET, "customers")
+print(keys)
+for key in keys:
+    object_json = client.download_object_as_json(BUCKET, key)
 
-
-print(client.list_objects("raw", "customers"))
+pprint(objects)
