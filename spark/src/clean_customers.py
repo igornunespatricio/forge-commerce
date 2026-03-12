@@ -1,0 +1,41 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when, datediff, current_date
+import json
+
+
+def main():
+    # Initialize Spark session
+    spark = SparkSession.builder.appName("CustomerDataProcessing").getOrCreate()
+
+    try:
+        # Read data from MinIO
+        df = spark.read.json(
+            "s3a://raw/customers/customers_batch_0000_20260309_092216.json"
+        )
+
+        # Apply transformations
+        cleaned_df = (
+            df.filter(col("is_active") == True)
+            .withColumn("age", datediff(current_date(), col("date_of_birth")) / 365)
+            .withColumn(
+                "customer_tier",
+                when(col("customer_lifetime_value") > 1000, "premium")
+                .when(col("customer_lifetime_value") > 500, "medium")
+                .otherwise("basic"),
+            )
+        )
+
+        # Write to cleaned bucket
+        cleaned_df.write.mode("overwrite").parquet("s3a://cleaned/customers")
+
+        print("Data processing completed successfully!")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        raise
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    main()
