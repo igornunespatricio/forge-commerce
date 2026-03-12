@@ -56,12 +56,12 @@ services:
       - "7077:7077" # Worker's communication port
       - "8080:8080" # Master UI
     environment:
-      - SPARK_HOME=/opt/spark
-      - AWS_ACCESS_KEY_ID=forge-commerce-user
-      - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
-      - AWS_S3_ENDPOINT=http://minio:9000
-      - AWS_S3_REGION=us-east-1
-      - AWS_S3_PATH_STYLE_ACCESS=true
+      SPARK_HOME: /opt/spark
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
     networks:
       - default-network
 
@@ -77,12 +77,12 @@ services:
     ports:
       - "8081:8081" # Worker 1 UI port
     environment:
-      - SPARK_HOME=/opt/spark
-      - AWS_ACCESS_KEY_ID=forge-commerce-user
-      - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
-      - AWS_S3_ENDPOINT=http://minio:9000
-      - AWS_S3_REGION=us-east-1
-      - AWS_S3_PATH_STYLE_ACCESS=true
+      SPARK_HOME: /opt/spark
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
     networks:
       - default-network
 
@@ -98,12 +98,12 @@ services:
     ports:
       - "8082:8081" # Worker 2 UI port
     environment:
-      - SPARK_HOME=/opt/spark
-      - AWS_ACCESS_KEY_ID=forge-commerce-user
-      - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
-      - AWS_S3_ENDPOINT=http://minio:9000
-      - AWS_S3_REGION=us-east-1
-      - AWS_S3_PATH_STYLE_ACCESS=true
+      SPARK_HOME: /opt/spark
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
     networks:
       - default-network
     # For batch job submissions
@@ -114,15 +114,15 @@ services:
     container_name: spark-submit
     command: sleep infinity
     volumes:
-      - ./spark:/app # Mount your Python scripts directory
+      - ./spark/src:/app # Mount your Python scripts directory
     environment:
-      - SPARK_HOME=/opt/spark
-      - SPARK_MASTER=spark://spark-master:7077
-      - AWS_ACCESS_KEY_ID=forge-commerce-user
-      - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
-      - AWS_S3_ENDPOINT=http://minio:9000
-      - AWS_S3_REGION=us-east-1
-      - AWS_S3_PATH_STYLE_ACCESS=true
+      SPARK_HOME: /opt/spark
+      SPARK_MASTER: spark://spark-master:7077
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
     networks:
       - default-network
     depends_on:
