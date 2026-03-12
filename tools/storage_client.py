@@ -19,8 +19,7 @@ import pandas as pd
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -42,38 +41,40 @@ class StorageClient:
                 - bucket_name: Default bucket name
                 - secure: Whether to use HTTPS (default: False for MinIO)
         """
-        self.service_type = config.get('service_type', 'minio')
-        self.bucket_name = config.get('bucket_name', 'default-bucket')
-        self.endpoint_url = config.get('endpoint_url', self._get_default_endpoint())
-        self.aws_access_key_id = config.get('aws_access_key_id', 'admin')
-        self.aws_secret_access_key = config.get('aws_secret_access_key', 'password')
-        self.region_name = config.get('region_name', 'us-east-1')
-        self.secure = config.get('secure', self.service_type == 's3')
+        self.service_type = config.get("service_type", "minio")
+        self.bucket_name = config.get("bucket_name", "default-bucket")
+        self.endpoint_url = config.get("endpoint_url", self._get_default_endpoint())
+        self.aws_access_key_id = config.get("aws_access_key_id", "admin")
+        self.aws_secret_access_key = config.get("aws_secret_access_key", "password")
+        self.region_name = config.get("region_name", "us-east-1")
+        self.secure = config.get("secure", self.service_type == "s3")
 
         self.client = self._create_client()
 
     def _get_default_endpoint(self) -> str:
         """Get default endpoint based on service type."""
-        if self.service_type == 'minio':
-            return 'http://localhost:9000'
-        return 'https://s3.amazonaws.com'
+        if self.service_type == "minio":
+            return "http://localhost:9000"
+        return "https://s3.amazonaws.com"
 
     def _create_client(self):
         """Create storage client based on service type."""
         try:
-            if self.service_type == 'minio':
-                return boto3.client('s3',
+            if self.service_type == "minio":
+                return boto3.client(
+                    "s3",
                     endpoint_url=self.endpoint_url,
                     aws_access_key_id=self.aws_access_key_id,
                     aws_secret_access_key=self.aws_secret_access_key,
                     region_name=self.region_name,
-                    use_ssl=self.secure
+                    use_ssl=self.secure,
                 )
-            elif self.service_type == 's3':
-                return boto3.client('s3',
+            elif self.service_type == "s3":
+                return boto3.client(
+                    "s3",
                     aws_access_key_id=self.aws_access_key_id,
                     aws_secret_access_key=self.aws_secret_access_key,
-                    region_name=self.region_name
+                    region_name=self.region_name,
                 )
             else:
                 raise ValueError(f"Unsupported service type: {self.service_type}")
@@ -81,8 +82,13 @@ class StorageClient:
             logger.error(f"Error creating storage client: {str(e)}")
             raise
 
-    def upload_object(self, bucket_name: str, key: str, body: Union[str, bytes, io.IOBase],
-                     content_type: Optional[str] = None) -> bool:
+    def upload_object(
+        self,
+        bucket_name: str,
+        key: str,
+        body: Union[str, bytes, io.IOBase],
+        content_type: Optional[str] = None,
+    ) -> bool:
         """
         Upload an object to storage.
 
@@ -98,14 +104,9 @@ class StorageClient:
         try:
             extra_args = {}
             if content_type:
-                extra_args['ContentType'] = content_type
+                extra_args["ContentType"] = content_type
 
-            self.client.put_object(
-                Bucket=bucket_name,
-                Key=key,
-                Body=body,
-                **extra_args
-            )
+            self.client.put_object(Bucket=bucket_name, Key=key, Body=body, **extra_args)
             logger.info(f"Successfully uploaded {key} to {bucket_name}")
             return True
         except (NoCredentialsError, PartialCredentialsError) as e:
@@ -132,7 +133,9 @@ class StorageClient:
         """
         try:
             self.client.upload_file(file_path, bucket_name, key)
-            logger.info(f"Successfully uploaded file {file_path} to {bucket_name}/{key}")
+            logger.info(
+                f"Successfully uploaded file {file_path} to {bucket_name}/{key}"
+            )
             return True
         except Exception as e:
             logger.error(f"Error uploading file: {str(e)}")
@@ -152,7 +155,9 @@ class StorageClient:
         """
         try:
             self.client.download_file(bucket_name, key, file_path)
-            logger.info(f"Successfully downloaded {key} from {bucket_name} to {file_path}")
+            logger.info(
+                f"Successfully downloaded {key} from {bucket_name} to {file_path}"
+            )
             return True
         except Exception as e:
             logger.error(f"Error downloading object: {str(e)}")
@@ -171,7 +176,7 @@ class StorageClient:
         """
         try:
             response = self.client.get_object(Bucket=bucket_name, Key=key)
-            return response['Body'].read().decode('utf-8')
+            return response["Body"].read().decode("utf-8")
         except Exception as e:
             logger.error(f"Error downloading object: {str(e)}")
             return None
@@ -189,12 +194,13 @@ class StorageClient:
         """
         try:
             response = self.client.get_object(Bucket=bucket_name, Key=key)
-            return json.loads(response['Body'].read().decode('utf-8'))
+            content_bytes = response["Body"].read()
+            return json.loads(content_bytes.decode("utf-8"))
         except Exception as e:
             logger.error(f"Error downloading object: {str(e)}")
             return None
 
-    def list_objects(self, bucket_name: str, prefix: str = '') -> list:
+    def list_objects(self, bucket_name: str, prefix: str = "") -> list:
         """
         List objects in a bucket with optional prefix.
 
@@ -206,12 +212,9 @@ class StorageClient:
             list: List of object keys
         """
         try:
-            response = self.client.list_objects_v2(
-                Bucket=bucket_name,
-                Prefix=prefix
-            )
-            if 'Contents' in response:
-                return [item['Key'] for item in response['Contents']]
+            response = self.client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+            if "Contents" in response:
+                return [item["Key"] for item in response["Contents"]]
             return []
         except Exception as e:
             logger.error(f"Error listing objects: {str(e)}")
@@ -268,8 +271,8 @@ class StorageClient:
             self.client.head_bucket(Bucket=bucket_name)
             return True
         except ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code == '404':
+            error_code = e.response["Error"]["Code"]
+            if error_code == "404":
                 return False
             raise
         except Exception as e:
@@ -283,26 +286,30 @@ class StorageClientFactory:
     @staticmethod
     def create_minio_client(config: Dict) -> StorageClient:
         """Create a MinIO client."""
-        config['service_type'] = 'minio'
+        config["service_type"] = "minio"
         return StorageClient(config)
 
     @staticmethod
     def create_s3_client(config: Dict) -> StorageClient:
         """Create an AWS S3 client."""
-        config['service_type'] = 's3'
+        config["service_type"] = "s3"
         return StorageClient(config)
 
     @staticmethod
     def create_client(service_type: str, config: Dict) -> StorageClient:
         """Create a storage client based on service type."""
-        config['service_type'] = service_type
+        config["service_type"] = service_type
         return StorageClient(config)
 
 
 # Convenience functions for common operations
-def upload_csv(bucket_name: str, key: str, data: pd.DataFrame,
-              storage_client: Optional[StorageClient] = None,
-              **client_config) -> bool:
+def upload_csv(
+    bucket_name: str,
+    key: str,
+    data: pd.DataFrame,
+    storage_client: Optional[StorageClient] = None,
+    **client_config,
+) -> bool:
     """
     Upload a pandas DataFrame as CSV to storage.
 
@@ -319,13 +326,19 @@ def upload_csv(bucket_name: str, key: str, data: pd.DataFrame,
     if storage_client is None:
         storage_client = StorageClient(client_config)
 
-    csv_buffer = data.to_csv(index=False, encoding='utf-8')
-    return storage_client.upload_object(bucket_name, key, csv_buffer, content_type='text/csv')
+    csv_buffer = data.to_csv(index=False, encoding="utf-8")
+    return storage_client.upload_object(
+        bucket_name, key, csv_buffer, content_type="text/csv"
+    )
 
 
-def upload_json(bucket_name: str, key: str, data: Union[dict, list],
-               storage_client: Optional[StorageClient] = None,
-               **client_config) -> bool:
+def upload_json(
+    bucket_name: str,
+    key: str,
+    data: Union[dict, list],
+    storage_client: Optional[StorageClient] = None,
+    **client_config,
+) -> bool:
     """
     Upload JSON data to storage.
 
@@ -343,12 +356,18 @@ def upload_json(bucket_name: str, key: str, data: Union[dict, list],
         storage_client = StorageClient(client_config)
 
     json_buffer = json.dumps(data)
-    return storage_client.upload_object(bucket_name, key, json_buffer, content_type='application/json')
+    return storage_client.upload_object(
+        bucket_name, key, json_buffer, content_type="application/json"
+    )
 
 
-def upload_parquet(bucket_name: str, key: str, data: pd.DataFrame,
-                  storage_client: Optional[StorageClient] = None,
-                  **client_config) -> bool:
+def upload_parquet(
+    bucket_name: str,
+    key: str,
+    data: pd.DataFrame,
+    storage_client: Optional[StorageClient] = None,
+    **client_config,
+) -> bool:
     """
     Upload a pandas DataFrame as Parquet to storage.
 
@@ -366,4 +385,6 @@ def upload_parquet(bucket_name: str, key: str, data: pd.DataFrame,
         storage_client = StorageClient(client_config)
 
     parquet_buffer = data.to_parquet(index=False)
-    return storage_client.upload_object(bucket_name, key, parquet_buffer, content_type='application/octet-stream')
+    return storage_client.upload_object(
+        bucket_name, key, parquet_buffer, content_type="application/octet-stream"
+    )
