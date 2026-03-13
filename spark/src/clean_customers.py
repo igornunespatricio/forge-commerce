@@ -1,6 +1,11 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when, datediff, current_date
 import json
+import os
+
+ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "forge-commerce-user")
+SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "forge-commerce-pass")
+S3_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT", "http://minio:9000")
 
 
 def main():
@@ -12,11 +17,11 @@ def main():
             "spark.sql.catalog.spark_catalog",
             "org.apache.spark.sql.delta.catalog.DeltaCatalog",
         )
-        .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
+        .config("spark.hadoop.fs.s3a.endpoint", S3_ENDPOINT)
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .config("spark.hadoop.fs.s3a.path.style.access", "true")
-        .config("spark.hadoop.fs.s3a.access.key", "minio")
-        .config("spark.hadoop.fs.s3a.secret.key", "password")
+        .config("spark.hadoop.fs.s3a.access.key", ACCESS_KEY)
+        .config("spark.hadoop.fs.s3a.secret.key", SECRET_KEY)
         .config(
             "spark.hadoop.fs.s3a.aws.credentials.provider",
             "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider",
