@@ -17,7 +17,7 @@ services:
     networks:
       - default-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: [ "CMD", "curl", "-f", "${AWS_S3_ENDPOINT}/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -52,6 +52,8 @@ services:
     container_name: spark-master
     hostname: spark-master
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
     ports:
       - "7077:7077" # Worker's communication port
       - "8080:8080" # Master UI
@@ -72,6 +74,8 @@ services:
     container_name: spark-worker-1
     hostname: spark-worker-1
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
     depends_on:
       - spark-master
     ports:
@@ -93,6 +97,8 @@ services:
     container_name: spark-worker-2
     hostname: spark-worker-2
     command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
     depends_on:
       - spark-master
     ports:
@@ -114,7 +120,7 @@ services:
     container_name: spark-submit
     command: sleep infinity
     volumes:
-      - ./spark/src:/app # Mount your Python scripts directory
+      - ./spark/src:/opt/spark/work-dir/src
     environment:
       SPARK_HOME: /opt/spark
       SPARK_MASTER: spark://spark-master:7077
