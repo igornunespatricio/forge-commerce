@@ -19,3 +19,9 @@ all:
 logs:
 	@echo "Showing container logs"
 	docker compose logs -f
+
+spark-submit:
+	@echo "Submitting Spark job"
+	docker exec spark-submit spark-submit \
+		--master spark://spark-master:7077 \
+		/opt/spark/work-dir/src/clean_customers.py
