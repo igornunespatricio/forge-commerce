@@ -2,7 +2,10 @@ FROM apache/spark:3.5.3
 
 USER root
 
-# Install Python dependencies
+# Upgrade pip tooling first (prevents many segfaults)
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install Jupyter first
 RUN python3 -m pip install --no-cache-dir \
     jupyterlab \
     python-dotenv
@@ -13,20 +16,25 @@ RUN curl -L -o /opt/spark/jars/hadoop-aws-3.3.4.jar \
     curl -L -o /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
     https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar
 
-# Ensure Spark Python libraries are visible
+# Make PySpark visible to Python
 ENV SPARK_HOME=/opt/spark
-ENV PYTHONPATH=/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip
+ENV PYTHONPATH=/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip:$PYTHONPATH
 
-# Create workspace
-RUN mkdir -p /home/spark/tools
-
+# Workspace
 WORKDIR /home/spark
 
-# Copy project tools
-COPY ../tools /home/spark/tools
+# Copy notebooks
+COPY spark/notebooks /home/spark/notebooks
 
-# Fix permissions
-RUN chown -R spark:spark /home/spark
+# Create Jupyter runtime directories and fix permissions
+RUN mkdir -p /home/spark/.jupyter \
+    && mkdir -p /home/spark/.local/share/jupyter \
+    && chmod -R 777 /home/spark
 
-# Switch back to Spark runtime user
-USER spark
+# Entrypoint
+COPY spark/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+USER root
