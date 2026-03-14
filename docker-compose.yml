@@ -112,7 +112,8 @@ services:
       AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
     networks:
       - default-network
-    # For batch job submissions
+    
+  # For batch job submissions
   spark-submit:
     build:
       context: .
@@ -133,32 +134,44 @@ services:
       - default-network
     depends_on:
       - spark-master
+
   # For interactive Jupyter notebooks
-  # jupyter:
-  #   build:
-  #     context: .
-  #     dockerfile: ./spark/jupyter.Dockerfile
-  #   container_name: jupyter
-  #   ports:
-  #     - "8888:8888"
-  #   volumes:
-  #     - ./spark/jupyter_notebook_config.py:/home/jovyan/.jupyter/jupyter_notebook_config.py
-  #     - ./spark/notebooks:/home/jovyan/notebooks
-  #     - ./.env:/home/jovyan/.env
-  #     - ./tools:/home/jovyan/notebooks/tools
-  #   environment:
-  #     - SPARK_OPTS=--master spark://spark-master:7077
-  #     - SPARK_HOME=/opt/spark
-  #     - JUPYTER_ENABLE_LAB=yes
-  #     - AWS_ACCESS_KEY_ID=forge-commerce-user
-  #     - AWS_SECRET_ACCESS_KEY=forge-commerce-pass
-  #     - AWS_S3_ENDPOINT=http://minio:9000
-  #     - AWS_S3_REGION=us-east-1
-  #     - AWS_S3_PATH_STYLE_ACCESS=true
-  #   networks:
-  #     - spark-network
-  #   depends_on:
-  #     - spark-master
+  jupyter:
+    build:
+      context: .
+      dockerfile: ./spark/jupyter.Dockerfile
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+
+    volumes:
+      - ./spark/jupyter_notebook_config.py:/home/spark/.jupyter/jupyter_notebook_config.py
+      - ./spark/notebooks:/home/spark/notebooks
+      - ./.env:/home/spark/.env
+      - ./tools:/home/spark/tools
+
+    environment:
+      SPARK_HOME: /opt/spark
+      SPARK_MASTER: spark://spark-master:7077
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+
+    command: >
+      jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token=''
+
+    networks:
+      - default-network
+
+    depends_on:
+      - spark-master
 
 volumes:
   minio_data:

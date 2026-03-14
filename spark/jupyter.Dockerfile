@@ -1,14 +1,32 @@
-FROM jupyter/pyspark-notebook:x86_64-ubuntu-22.04
+FROM apache/spark:3.5.3
 
-# Install additional Python packages
 USER root
-RUN pip install --no-cache-dir python-dotenv boto3
 
-# Copy tools directory to make it available in the container
-# COPY ../tools /home/jovyan/tools
+# Install Python dependencies
+RUN python3 -m pip install --no-cache-dir \
+    jupyterlab \
+    python-dotenv
 
-# Set proper permissions for the tools directory
-# RUN chown -R jovyan:users /home/jovyan/tools
+# Install Hadoop S3A dependencies
+RUN curl -L -o /opt/spark/jars/hadoop-aws-3.3.4.jar \
+    https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    curl -L -o /opt/spark/jars/aws-java-sdk-bundle-1.12.262.jar \
+    https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar
 
-# Switch back to jovyan user
-USER jovyan
+# Ensure Spark Python libraries are visible
+ENV SPARK_HOME=/opt/spark
+ENV PYTHONPATH=/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.7-src.zip
+
+# Create workspace
+RUN mkdir -p /home/spark/tools
+
+WORKDIR /home/spark
+
+# Copy project tools
+COPY ../tools /home/spark/tools
+
+# Fix permissions
+RUN chown -R spark:spark /home/spark
+
+# Switch back to Spark runtime user
+USER spark
