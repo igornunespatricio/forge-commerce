@@ -20,8 +20,20 @@ logs:
 	@echo "Showing container logs"
 	docker compose logs -f
 
-spark-submit:
-	@echo "Submitting Spark job"
+spark-submit-clean-customers:
+	@echo "Submitting Spark job: Clean Customers"
 	docker exec spark-submit spark-submit \
 		--master spark://spark-master:7077 \
 		/opt/spark/work-dir/src/clean_customers.py
+
+spark-submit-clean-products:
+	@echo "Submitting Spark job: Clean Products"
+	docker exec spark-submit spark-submit \
+		--master spark://spark-master:7077 \
+		/opt/spark/work-dir/src/clean_products.py
+
+spark-submit-clean-orders:
+	@echo "Submitting Spark job: Clean Orders"
+	docker exec spark-submit spark-submit \
+		--master spark://spark-master:7077 \
+		/opt/spark/work-dir/src/clean_orders.py
