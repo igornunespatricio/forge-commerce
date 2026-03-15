@@ -37,3 +37,9 @@ spark-submit-clean-orders:
 	docker exec spark-submit spark-submit \
 		--master spark://spark-master:7077 \
 		/opt/spark/work-dir/src/clean_orders.py
+
+spark-submit-clean-payments:
+	@echo "Submitting Spark job: Clean Payments"
+	docker exec spark-submit spark-submit \
+		--master spark://spark-master:7077 \
+		/opt/spark/work-dir/src/clean_payments.py
