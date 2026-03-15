@@ -24,22 +24,29 @@ spark-submit-clean-customers:
 	@echo "Submitting Spark job: Clean Customers"
 	docker exec spark-submit spark-submit \
 		--master spark://spark-master:7077 \
-		/opt/spark/work-dir/src/clean_customers.py
+		/opt/spark/work-dir/src/clean/clean_customers.py
 
 spark-submit-clean-products:
 	@echo "Submitting Spark job: Clean Products"
 	docker exec spark-submit spark-submit \
 		--master spark://spark-master:7077 \
-		/opt/spark/work-dir/src/clean_products.py
+		/opt/spark/work-dir/src/clean/clean_products.py
 
 spark-submit-clean-orders:
 	@echo "Submitting Spark job: Clean Orders"
 	docker exec spark-submit spark-submit \
 		--master spark://spark-master:7077 \
-		/opt/spark/work-dir/src/clean_orders.py
+		/opt/spark/work-dir/src/clean/clean_orders.py
 
 spark-submit-clean-payments:
 	@echo "Submitting Spark job: Clean Payments"
 	docker exec spark-submit spark-submit \
 		--master spark://spark-master:7077 \
-		/opt/spark/work-dir/src/clean_payments.py
+		/opt/spark/work-dir/src/clean/clean_payments.py
+
+spark-submit-clean-all-data:
+	@echo "Submitting Spark job: Clean All"
+	make spark-submit-clean-customers
+	make spark-submit-clean-products
+	make spark-submit-clean-orders
+	make spark-submit-clean-payments
