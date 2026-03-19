@@ -25,6 +25,12 @@ def main():
         .config("spark.hadoop.fs.s3a.path.style.access", "true")
         .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
         .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+        # Delta Lake configurations
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+        .config(
+            "spark.sql.catalog.spark_catalog",
+            "org.apache.spark.sql.delta.catalog.DeltaCatalog",
+        )
         .getOrCreate()
     )
 
@@ -32,8 +38,11 @@ def main():
         # Read data from MinIO
         df = spark.read.json(ORIGIN_PATH)
 
+        # Drop duplicates based on order id and created at
+        df_no_dup = df.dropDuplicates(["order_id", "created_at"])
+
         df_clean = (
-            df
+            df_no_dup
             # ----------------------------
             # Standardize / normalize text
             # ----------------------------
@@ -282,9 +291,9 @@ def main():
         )
 
         # Write to cleaned bucket with partitioning
-        df_clean.write.partitionBy("order_year", "order_month").mode(
+        df_clean.write.format("delta").partitionBy("order_year", "order_month").mode(
             "overwrite"
-        ).parquet(DESTINATION_PATH)
+        ).save(DESTINATION_PATH)
 
         print("Order data cleaning completed successfully!")
 
