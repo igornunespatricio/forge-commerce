@@ -4,7 +4,7 @@ USER root
 
 # Install Java and pip + pyspark
 RUN apt-get update && apt-get install -y python3-pip openjdk-11-jdk && \
-    pip3 install pyspark==3.5.3
+    pip3 install --no-cache-dir pyspark==3.5.3 delta-spark 
 
 # Delta Lake 3.2.0 (Scala 2.12)
 RUN curl -L -o /opt/spark/jars/delta-spark_2.12-3.2.0.jar \

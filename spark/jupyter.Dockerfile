@@ -8,7 +8,8 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
 # Install Jupyter first
 RUN python3 -m pip install --no-cache-dir \
     jupyterlab \
-    python-dotenv
+    python-dotenv \
+    delta-spark
 
 # Delta Lake 3.2.0 (Scala 2.12)
 RUN curl -L -o /opt/spark/jars/delta-spark_2.12-3.2.0.jar \
