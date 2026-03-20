@@ -12,6 +12,11 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_DOMAIN: ${MINIO_DOMAIN}
       MINIO_REGION: ${MINIO_REGION}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     volumes:
       - minio_data:/data/minio
     networks:
@@ -64,6 +69,11 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     networks:
       - default-network
 
@@ -87,6 +97,11 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     networks:
       - default-network
 
@@ -110,6 +125,11 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     networks:
       - default-network
     
@@ -130,6 +150,11 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     networks:
       - default-network
     depends_on:
@@ -143,13 +168,11 @@ services:
     container_name: jupyter
     ports:
       - "8888:8888"
-
     volumes:
       - ./spark/jupyter_notebook_config.py:/home/spark/.jupyter/jupyter_notebook_config.py
       - ./spark/notebooks:/home/spark/notebooks
       - ./.env:/home/spark/.env
       - ./tools:/home/spark/tools
-
     environment:
       SPARK_HOME: /opt/spark
       SPARK_MASTER: spark://spark-master:7077
@@ -158,7 +181,11 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_REGION: ${AWS_S3_REGION}
       AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
-
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     command: >
       jupyter lab
       --ip=0.0.0.0
@@ -169,7 +196,6 @@ services:
 
     networks:
       - default-network
-
     depends_on:
       - spark-master
 
