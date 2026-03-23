@@ -1,8 +1,9 @@
+from delta import DeltaTable
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when, datediff, current_date
+from pyspark.sql import functions as sf
+import pyspark.sql.types as st
 import json
 import os
-from pyspark.sql import functions as F
 
 ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "forge-commerce-user")
 SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "forge-commerce-pass")
@@ -17,7 +18,7 @@ DESTINATION_PATH = f"s3a://{DESTINATION_BUCKET}/{PREFIX}/"
 def main():
     # Initialize Spark session
     spark = (
-        SparkSession.builder.appName("ReadPaymentsFromRaw")
+        SparkSession.builder.appName("clean_payments")
         .master(os.environ.get("SPARK_MASTER", "spark://spark-master:7077"))
         .config("spark.hadoop.fs.s3a.access.key", ACCESS_KEY)
         .config("spark.hadoop.fs.s3a.secret.key", SECRET_KEY)
@@ -39,96 +40,100 @@ def main():
         df = spark.read.json(ORIGIN_PATH)
 
         # Drop duplicates based on payment id and created at
-        df_no_dup = df.dropDuplicates(["payment_id", "created_at"])
+        df_deduplicated = df.dropDuplicates()
 
         df_clean = (
-            df_no_dup
+            df_deduplicated
             # ----------------------------
             # Standardize / normalize text
             # ----------------------------
-            .withColumn("payment_method", F.lower(F.trim("payment_method")))
-            .withColumn("payment_status", F.lower(F.trim("payment_status")))
-            .withColumn("payment_gateway", F.lower(F.trim("payment_gateway")))
-            .withColumn("currency_code", F.upper(F.trim("currency_code")))
-            .withColumn("customer_segment", F.lower(F.trim("customer_segment")))
-            .withColumn("chargeback_reason", F.lower(F.trim("chargeback_reason")))
-            .withColumn("payment_reference", F.upper(F.trim("payment_reference")))
+            .withColumn("payment_method", sf.lower(sf.trim("payment_method")))
+            .withColumn("payment_status", sf.lower(sf.trim("payment_status")))
+            .withColumn("payment_gateway", sf.lower(sf.trim("payment_gateway")))
+            .withColumn("currency_code", sf.upper(sf.trim("currency_code")))
+            .withColumn("customer_segment", sf.lower(sf.trim("customer_segment")))
+            .withColumn("chargeback_reason", sf.lower(sf.trim("chargeback_reason")))
+            .withColumn("payment_reference", sf.upper(sf.trim("payment_reference")))
             # ----------------------------
             # Convert date columns
             # ----------------------------
-            .withColumn("payment_date", F.to_date("payment_date"))
-            .withColumn("chargeback_date", F.to_date("chargeback_date"))
-            .withColumn("created_at", F.to_timestamp("created_at"))
-            .withColumn("updated_at", F.to_timestamp("updated_at"))
+            # combine date and time into payment timestamp
+            .withColumn(
+                "payment_timestamp",
+                sf.to_timestamp(
+                    sf.concat_ws(
+                        " ",
+                        sf.col("payment_date"),
+                        sf.col("payment_time"),
+                    ),
+                    "yyyy-MM-dd HH:mm:ss",
+                ),
+            )
+            .withColumn("chargeback_date", sf.to_date("chargeback_date"))
+            .withColumn("created_at", sf.to_timestamp("created_at"))
+            .withColumn("updated_at", sf.to_timestamp("updated_at"))
+            # ----------------------------
+            # Convert numeric columns
+            # ----------------------------
+            .withColumn("payment_id", sf.col("payment_id").cast("integer"))
+            .withColumn("customer_id", sf.col("customer_id").cast("integer"))
+            .withColumn("order_id", sf.col("order_id").cast("integer"))
+            .withColumn(
+                "order_amount", sf.col("order_amount").cast(st.DecimalType(10, 2))
+            )
+            .withColumn(
+                "transaction_fee_rate",
+                sf.col("transaction_fee_rate").cast(st.DecimalType(10, 2)),
+            )
+            .withColumn(
+                "transaction_fee", sf.col("transaction_fee").cast(st.DecimalType(10, 2))
+            )
+            .withColumn("net_amount", sf.col("net_amount").cast(st.DecimalType(10, 2)))
+            .withColumn(
+                "fraud_score", sf.col("fraud_score").cast(st.DecimalType(10, 2))
+            )
+            .withColumn(
+                "chargeback_amount",
+                sf.col("chargeback_amount").cast(st.DecimalType(10, 2)),
+            )
             # ----------------------------
             # Derived fields
             # ----------------------------
             # Year and month for partitioning
-            .withColumn("payment_year", F.year("payment_date"))
-            .withColumn("payment_month", F.month("payment_date"))
-            # Payment age in days
-            .withColumn(
-                "payment_age_days", F.datediff(F.current_date(), F.col("payment_date"))
-            )
+            .withColumn("payment_year", sf.year("payment_date"))
+            .withColumn("payment_month", sf.month("payment_date"))
             # Chargeback time in days
             .withColumn(
                 "chargeback_time_days",
-                F.datediff(F.col("chargeback_date"), F.col("payment_date")),
+                sf.datediff(sf.col("chargeback_date"), sf.col("payment_date")),
             )
             # Payment success flag
             .withColumn(
                 "is_successful_payment",
-                when(F.col("payment_status") == "success", True).otherwise(False),
+                sf.when(sf.col("payment_status") == "success", True).otherwise(False),
             )
             # Payment failure flag
             .withColumn(
                 "is_failed_payment",
-                when(F.col("payment_status") == "failed", True).otherwise(False),
+                sf.when(sf.col("payment_status") == "failed", True).otherwise(False),
             )
             # Payment pending flag
             .withColumn(
                 "is_pending_payment",
-                when(F.col("payment_status") == "pending", True).otherwise(False),
+                sf.when(sf.col("payment_status") == "pending", True).otherwise(False),
             )
             # Chargeback flag
             .withColumn(
                 "has_chargeback",
-                when(F.col("chargeback_amount") > 0, True).otherwise(False),
+                sf.when(sf.col("chargeback_amount") > 0, True).otherwise(False),
             )
             # Fraud risk level
             .withColumn(
                 "fraud_risk_level",
-                when(F.col("fraud_score") >= 0.8, "high")
-                .when(F.col("fraud_score") >= 0.5, "medium")
-                .when(F.col("fraud_score") >= 0.2, "low")
+                sf.when(sf.col("fraud_score") >= 0.8, "high")
+                .when(sf.col("fraud_score") >= 0.5, "medium")
+                .when(sf.col("fraud_score") >= 0.2, "low")
                 .otherwise("minimal"),
-            )
-            # Payment method category
-            .withColumn(
-                "payment_method_category",
-                when(
-                    F.col("payment_method").isin(["credit_card", "debit_card"]), "card"
-                )
-                .when(
-                    F.col("payment_method").isin(["paypal", "stripe"]), "digital_wallet"
-                )
-                .otherwise("other"),
-            )
-            # Transaction fee category
-            .withColumn(
-                "fee_category",
-                when(F.col("transaction_fee") == 0, "free")
-                .when(F.col("transaction_fee") < 1, "low")
-                .when(F.col("transaction_fee") < 5, "medium")
-                .otherwise("high"),
-            )
-            # Order amount category
-            .withColumn(
-                "order_amount_category",
-                when(F.col("order_amount") < 50, "small")
-                .when(F.col("order_amount") < 200, "medium")
-                .when(F.col("order_amount") < 1000, "large")
-                .otherwise("premium"),
             )
             # ----------------------------
             # Data quality improvements
@@ -136,201 +141,113 @@ def main():
             # Validate order amounts
             .withColumn(
                 "order_amount",
-                when(F.col("order_amount") < 0, None).otherwise(
-                    F.round(F.col("order_amount"), 2)
+                sf.when(sf.col("order_amount") < 0, None).otherwise(
+                    sf.col("order_amount")
                 ),
             )
             # Validate transaction fees
             .withColumn(
                 "transaction_fee",
-                when(F.col("transaction_fee") < 0, 0).otherwise(
-                    F.round(F.col("transaction_fee"), 2)
+                sf.when(sf.col("transaction_fee") < 0, 0).otherwise(
+                    sf.col("transaction_fee")
                 ),
             )
             # Validate net amounts
             .withColumn(
                 "net_amount",
-                when(F.col("net_amount") < 0, None).otherwise(
-                    F.round(F.col("net_amount"), 2)
-                ),
+                sf.when(sf.col("net_amount") < 0, None).otherwise(sf.col("net_amount")),
             )
             # Validate chargeback amounts
             .withColumn(
                 "chargeback_amount",
-                when(F.col("chargeback_amount") < 0, 0).otherwise(
-                    F.round(F.col("chargeback_amount"), 2)
+                sf.when(sf.col("chargeback_amount") < 0, 0).otherwise(
+                    sf.col("chargeback_amount")
                 ),
             )
             # Validate fraud scores
             .withColumn(
                 "fraud_score",
-                when(
-                    (F.col("fraud_score") < 0) | (F.col("fraud_score") > 1), None
-                ).otherwise(F.round(F.col("fraud_score"), 3)),
+                sf.when(
+                    (sf.col("fraud_score") < 0) | (sf.col("fraud_score") > 1), None
+                ).otherwise(sf.col("fraud_score")),
             )
             # Validate transaction fee rates
             .withColumn(
                 "transaction_fee_rate",
-                when(
-                    (F.col("transaction_fee_rate") < 0)
-                    | (F.col("transaction_fee_rate") > 1),
+                sf.when(
+                    (sf.col("transaction_fee_rate") < 0)
+                    | (sf.col("transaction_fee_rate") > 1),
                     None,
-                ).otherwise(F.round(F.col("transaction_fee_rate"), 4)),
-            )
-            # Validate dates
-            .withColumn(
-                "payment_date",
-                when(F.col("payment_date").isNull(), None).otherwise(
-                    F.col("payment_date")
-                ),
-            )
-            # Validate customer ID
-            .withColumn(
-                "customer_id",
-                when(F.col("customer_id").isNull(), -1).otherwise(F.col("customer_id")),
-            )
-            # Validate order ID
-            .withColumn(
-                "order_id",
-                when(F.col("order_id").isNull(), -1).otherwise(F.col("order_id")),
+                ).otherwise(sf.col("transaction_fee_rate")),
             )
             # ----------------------------
             # Data quality flags
             # ----------------------------
-            # Flag payments with suspicious amounts
-            # .withColumn(
-            #     "amount_outlier_flag",
-            #     when(
-            #         (F.col("order_amount") > 10000)
-            #         | (F.col("order_amount") < 1)
-            #         | (F.col("transaction_fee") > 500),
-            #         True,
-            #     ).otherwise(False),
-            # )
-            # Flag high fraud scores
-            .withColumn(
-                "high_fraud_score_flag",
-                when(F.col("fraud_score") > 0.8, True).otherwise(False),
-            )
             # Flag payments with missing payment dates
             .withColumn(
                 "missing_payment_date_flag",
-                when(F.col("payment_date").isNull(), True).otherwise(False),
+                sf.when(sf.col("payment_date").isNull(), True).otherwise(False),
             )
             # Flag payments with missing chargeback dates
             .withColumn(
                 "missing_chargeback_date_flag",
-                when(
-                    (F.col("chargeback_amount") > 0)
-                    & F.col("chargeback_date").isNull(),
+                sf.when(
+                    (sf.col("chargeback_amount") > 0)
+                    & sf.col("chargeback_date").isNull(),
                     True,
                 ).otherwise(False),
             )
             # Flag payments with long chargeback times
             .withColumn(
                 "long_chargeback_time_flag",
-                when(F.col("chargeback_time_days") > 180, True).otherwise(False),
+                sf.when(sf.col("chargeback_time_days") > 180, True).otherwise(False),
             )
             # Flag payments with negative net amounts
             .withColumn(
                 "negative_net_amount_flag",
-                when(F.col("net_amount") < 0, True).otherwise(False),
+                sf.when(sf.col("net_amount") < 0, True).otherwise(False),
             )
             # Flag payments with invalid status combinations
             .withColumn(
                 "status_inconsistency_flag",
-                when(
+                sf.when(
                     (
-                        (F.col("payment_status") == "success")
-                        & (F.col("chargeback_amount") > 0)
+                        (sf.col("payment_status") == "success")
+                        & (sf.col("chargeback_amount") > 0)
                     )
                     | (
-                        (F.col("payment_status") == "failed")
-                        & (F.col("chargeback_amount") > 0)
+                        (sf.col("payment_status") == "failed")
+                        & (sf.col("chargeback_amount") > 0)
                     ),
                     True,
                 ).otherwise(False),
             )
-            # Flag payments with mismatched amounts
-            # .withColumn(
-            #     "amount_mismatch_flag",
-            #     when(
-            #         F.abs(
-            #             F.col("net_amount")
-            #             - (F.col("order_amount") - F.col("transaction_fee"))
-            #         )
-            #         > 0.01,
-            #         True,
-            #     ).otherwise(False),
-            # )
-            # ----------------------------
-            # Business logic validation
-            # ----------------------------
-            # Validate payment status consistency
-            .withColumn(
-                "payment_status_valid",
-                when(
-                    F.col("payment_status").isin(
-                        ["success", "failed", "pending", "refunded"]
-                    ),
-                    True,
-                ).otherwise(False),
-            )
-            # Validate payment method consistency
-            .withColumn(
-                "payment_method_valid",
-                when(
-                    F.col("payment_method").isin(
-                        [
-                            "credit_card",
-                            "debit_card",
-                            "paypal",
-                            "apple_pay",
-                            "google_pay",
-                        ]
-                    ),
-                    True,
-                ).otherwise(False),
-            )
-            # Validate currency code consistency
-            # .withColumn(
-            #     "currency_valid",
-            #     when(
-            #         F.col("currency_code").isin(["USD", "EUR", "GBP", "CAD", "AUD"]),
-            #         True,
-            #     ).otherwise(False),
-            # )
-            # Validate chargeback reason consistency
-            .withColumn(
-                "chargeback_reason_valid",
-                when(
-                    F.col("chargeback_reason").isNull()
-                    | F.col("chargeback_reason").isin(
-                        ["fraudulent", "not_received", "defective", "cancelled"]
-                    ),
-                    True,
-                ).otherwise(False),
-            )
-            # Validate transaction fee calculation
-            # .withColumn(
-            #     "fee_calculation_valid",
-            #     when(
-            #         F.abs(
-            #             F.col("transaction_fee")
-            #             - (F.col("order_amount") * F.col("transaction_fee_rate"))
-            #         )
-            #         > 0.01,
-            #         False,
-            #     ).otherwise(True),
-            # )
         )
 
         # Write to cleaned bucket with partitioning
-        df_clean.write.format("delta").partitionBy(
-            "payment_year", "payment_month"
-        ).mode("overwrite").save(DESTINATION_PATH)
+        # df_clean.write.format("delta").partitionBy(
+        #     "payment_year", "payment_month"
+        # ).mode("overwrite").save(DESTINATION_PATH)
 
-        print("Payment data cleaning completed successfully!")
+        # merge into cleaned bucket
+        detal_table_exists = DeltaTable.isDeltaTable(spark, DESTINATION_PATH)
+        if not detal_table_exists:
+            df_clean.write.format("delta").partitionBy(
+                "payment_year", "payment_month"
+            ).mode("overwrite").save(DESTINATION_PATH)
+        else:
+            cleaned_table = DeltaTable.forPath(spark, DESTINATION_PATH)
+            (
+                cleaned_table.alias("tgt")
+                .merge(
+                    df_clean.alias("src"),
+                    "tgt.payment_id = src.payment_id AND tgt.created_at = src.created_at",
+                )
+                .whenNotMatchedInsertAll()
+                .execute()
+            )
+
+        print("Data processing completed successfully!")
 
     except Exception as e:
         print(f"Error: {e}")
