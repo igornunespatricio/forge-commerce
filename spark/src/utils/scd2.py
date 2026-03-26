@@ -87,9 +87,9 @@ def apply_scd_type2(
         # Find ids that will be affected by the new data
         ids_affected = df_cleaned_new.select(id_column).distinct()
         affected_count = ids_affected.count()
-        print(f"Customers Affected: {affected_count}")
+        print(f"Ids Affected: {affected_count}")
 
-        # Get current active records for affected customers
+        # Get current active records for affected ids
         df_curated_active = df_curated.filter(sf.col(active_flag_column) == True).join(
             ids_affected, id_column, "inner"
         )
