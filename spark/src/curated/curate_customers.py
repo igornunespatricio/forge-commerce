@@ -138,7 +138,7 @@ def curate_customers_scd2(
         print(f"Target: {curated_path}")
         print()
 
-        # Apply SCD2 logic using the utility function
+        # Apply SCD2 logic using the utility function with surrogate key
         apply_scd_type2(
             spark=spark,
             source_path=cleaned_path,
@@ -147,6 +147,7 @@ def curate_customers_scd2(
             active_flag_column="is_active",
             timestamp_column="created_at",
             partition_columns=["creation_year", "creation_month"],
+            surrogate_key_column="sk_customer",
         )
 
         print("=" * 60)

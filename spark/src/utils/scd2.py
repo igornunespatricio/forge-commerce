@@ -12,12 +12,13 @@ def apply_scd_type2(
     active_flag_column: str,
     timestamp_column: str,
     partition_columns: list,
+    surrogate_key_column: str = None,
 ) -> None:
     """
     Apply Slowly Changing Dimension Type 2 (SCD2) logic to data using Delta Lake.
 
     This function handles both initial load and incremental updates for SCD2 implementation.
-    It creates or updates a Delta table with effective_from, effective_to, and is_active columns.
+    It creates or updates a Delta table with effective_from, effective_to, is_active, and surrogate key columns.
 
     Args:
         spark (SparkSession): Active Spark session
@@ -27,6 +28,8 @@ def apply_scd_type2(
         active_flag_column (str): Column name for the active flag (e.g., 'is_active')
         timestamp_column (str): Column name for the timestamp to determine version order
         partition_columns (list): List of column names to partition the target table by
+        surrogate_key_column (str): Column name for the surrogate key (e.g., 'sk_customer').
+                                   If None, will use 'sk_' + id_column as default.
 
     Returns:
         None: The function performs the SCD2 operation and saves the result to target_path
@@ -38,18 +41,32 @@ def apply_scd_type2(
     # Read the source data
     df_cleaned = spark.read.format("delta").load(source_path)
 
+    # Determine surrogate key column name
+    if surrogate_key_column is None:
+        surrogate_key_column = f"sk_{id_column}"
+
     # Check if the target Delta table already exists
     delta_table_exists = DeltaTable.isDeltaTable(spark, target_path)
     print(f"Delta Table Exists: {delta_table_exists}")
 
     if not delta_table_exists:
-        # Initial load - create the SCD2 table
+        # Initial load - create the SCD2 table with surrogate keys
         window_spec = Window.partitionBy(id_column).orderBy(
             sf.col(timestamp_column).asc()
         )
 
-        df_cleaned = (
-            df_cleaned.withColumn("effective_from", sf.col(timestamp_column))
+        # Generate surrogate keys for initial load
+        df_with_surrogate = (
+            df_cleaned.withColumn(
+                "row_num",
+                sf.row_number().over(Window.orderBy(id_column, timestamp_column)),
+            )
+            .withColumn(surrogate_key_column, sf.col("row_num"))
+            .drop("row_num")
+        )
+
+        df_scd2 = (
+            df_with_surrogate.withColumn("effective_from", sf.col(timestamp_column))
             .withColumn("effective_to", sf.lead(timestamp_column).over(window_spec))
             .withColumn(
                 active_flag_column,
@@ -58,10 +75,10 @@ def apply_scd_type2(
         )
 
         # Write the initial SCD2 table with partitioning
-        df_cleaned.write.format("delta").partitionBy(partition_columns).mode(
+        df_scd2.write.format("delta").partitionBy(partition_columns).mode(
             "overwrite"
         ).save(target_path)
-        print(f"Initial SCD2 table created at: {target_path}")
+        print(f"Initial SCD2 table with surrogate keys created at: {target_path}")
 
     else:
         # Incremental update - merge new data with existing SCD2 table
@@ -103,7 +120,7 @@ def apply_scd_type2(
         window_spec = Window.partitionBy(id_column).orderBy(
             sf.col(timestamp_column).asc()
         )
-        df_scd2 = (
+        df_scd2_base = (
             df_union_cleaned_new_and_curated_active.withColumn(
                 "effective_from", sf.col(timestamp_column)
             )
@@ -114,11 +131,30 @@ def apply_scd_type2(
             )
         )
 
+        # Generate surrogate keys for incremental update
+        # Find the maximum existing surrogate key value
+        max_surrogate_row = df_curated.agg({surrogate_key_column: "max"}).collect()[0]
+        max_surrogate = max_surrogate_row[0] if max_surrogate_row[0] is not None else 0
+        print(f"Max existing surrogate key: {max_surrogate}")
+
+        # Generate new surrogate keys starting from max_surrogate + 1
+        df_with_new_surrogate = (
+            df_scd2_base.withColumn(
+                "row_num",
+                sf.row_number().over(Window.orderBy(id_column, timestamp_column)),
+            )
+            .withColumn(
+                surrogate_key_column,
+                sf.col("row_num") + sf.lit(max_surrogate),
+            )
+            .drop("row_num")
+        )
+
         # Merge the SCD2 data back to the Delta table
         (
             curated_delta_table.alias("tgt")
             .merge(
-                df_scd2.alias("src"),
+                df_with_new_surrogate.alias("src"),
                 f"tgt.{id_column} = src.{id_column} AND tgt.{timestamp_column} = src.{timestamp_column}",
             )
             .whenMatchedUpdateAll()
@@ -126,7 +162,9 @@ def apply_scd_type2(
             .execute()
         )
 
-        print(f"SCD2 incremental update completed at: {target_path}")
+        print(
+            f"SCD2 incremental update with surrogate keys completed at: {target_path}"
+        )
 
 
 # Example usage functions
