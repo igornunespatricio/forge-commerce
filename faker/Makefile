@@ -38,8 +38,8 @@ products:
 orders:
 	@echo "Generating order data..."
 	@poetry run python $(SCRIPT_DIR)/generate_orders.py \
-		--total-records 5000 \
-		--batch-size 5000 \
+		--total-records 1000 \
+		--batch-size 1000 \
 		--output-format json \
 		--bucket-name raw
 
@@ -47,8 +47,8 @@ orders:
 payments:
 	@echo "Generating payment data..."
 	@poetry run python $(SCRIPT_DIR)/generate_payments.py \
-		--total-records 5000 \
-		--batch-size 5000 \
+		--total-records 1000 \
+		--batch-size 1000 \
 		--output-format json \
 		--bucket-name raw
 
