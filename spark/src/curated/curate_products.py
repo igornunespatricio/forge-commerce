@@ -43,7 +43,7 @@ CLEANED_PATH = f"s3a://{CLEANED_BUCKET}/{PREFIX}/"
 CURATED_PATH = f"s3a://{CURATED_BUCKET}/{PREFIX}/"
 
 
-def setup_spark_session(app_name: str = "ProductSCD2Curator") -> SparkSession:
+def setup_spark_session(app_name: str = "curate_products") -> SparkSession:
     """
     Initialize and configure Spark session for product data curation.
 
@@ -125,7 +125,7 @@ def curate_products_scd2(
 
     # Setup Spark session if not provided
     if spark is None:
-        spark = setup_spark_session("ProductSCD2Curator")
+        spark = setup_spark_session("curate_products")
 
     try:
         # Validate paths
