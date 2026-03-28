@@ -111,15 +111,21 @@ def apply_scd_type2(
             ids_affected, id_column, "inner"
         )
 
-        # Union active records with new data for SCD2 processing
-        df_union_cleaned_new_and_curated_active = df_curated_active.select(
-            df_cleaned_new.columns
-        ).unionByName(df_cleaned_new)
+        # Add surrogate key column with None values to new records before union
+        df_cleaned_new_with_surrogate = df_cleaned_new.withColumn(
+            surrogate_key_column, sf.lit(None)
+        )
 
         # Apply SCD2 logic to the unioned dataset
         window_spec = Window.partitionBy(id_column).orderBy(
             sf.col(timestamp_column).asc()
         )
+
+        # Union active records with new data for SCD2 processing
+        df_union_cleaned_new_and_curated_active = df_curated_active.select(
+            df_cleaned_new_with_surrogate.columns
+        ).unionByName(df_cleaned_new_with_surrogate)
+
         df_scd2_base = (
             df_union_cleaned_new_and_curated_active.withColumn(
                 "effective_from", sf.col(timestamp_column)
@@ -137,17 +143,30 @@ def apply_scd_type2(
         max_surrogate = max_surrogate_row[0] if max_surrogate_row[0] is not None else 0
         print(f"Max existing surrogate key: {max_surrogate}")
 
-        # Generate new surrogate keys starting from max_surrogate + 1
+        # Generate new surrogate keys only for new records while preserving existing ones
+        # Add a flag to identify new records vs existing active records
+        df_with_source_flag = df_scd2_base.withColumn(
+            "is_new_record",
+            sf.when(sf.col(timestamp_column) > max_loaded, True).otherwise(False),
+        )
+
+        # Generate row numbers only for new records
+        new_records_window = Window.orderBy(id_column, timestamp_column)
         df_with_new_surrogate = (
-            df_scd2_base.withColumn(
-                "row_num",
-                sf.row_number().over(Window.orderBy(id_column, timestamp_column)),
+            df_with_source_flag.withColumn(
+                "new_row_num",
+                sf.when(
+                    sf.col("is_new_record"), sf.row_number().over(new_records_window)
+                ).otherwise(sf.lit(None)),
             )
             .withColumn(
                 surrogate_key_column,
-                sf.col("row_num") + sf.lit(max_surrogate),
+                sf.when(
+                    sf.col("is_new_record"),
+                    sf.col("new_row_num") + sf.lit(max_surrogate),
+                ).otherwise(sf.col(surrogate_key_column)),
             )
-            .drop("row_num")
+            .drop("is_new_record", "new_row_num")
         )
 
         # Merge the SCD2 data back to the Delta table
