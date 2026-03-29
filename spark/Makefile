@@ -50,6 +50,11 @@ spark-submit-curate-orders:
 		--master spark://spark-master:7077 \
 		/opt/spark/work-dir/src/curated/curate_orders.py
 
+spark-submit-curate-order-items:
+	@echo "Submitting Spark job: Curate Order Items"
+	docker exec spark-submit spark-submit \
+		--master spark://spark-master:7077 \
+		/opt/spark/work-dir/src/curated/curate_order_items.py
 
 spark-submit-curate-payments:
 	@echo "Submitting Spark job: Curate Payments"
@@ -62,7 +67,8 @@ spark-submit-curate-all-data:
 	make spark-submit-curate-customers
 	make spark-submit-curate-products
 	make spark-submit-curate-orders
-	make spark-submit-curate-payments
+	make spark-submit-curate-order-items
+# 	make spark-submit-curate-payments
 
 spark-submit-all:
 	@echo "Submitting All Spark jobs"
