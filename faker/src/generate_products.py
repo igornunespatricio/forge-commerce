@@ -395,7 +395,7 @@ class ProductGenerator:
                 "is_active": self.faker.boolean(chance_of_getting_true=95),
                 "is_discontinued": self.faker.boolean(chance_of_getting_true=3),
                 "created_at": current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                "updated_at": current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                "last_updated": current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 "warranty_months": random.choice([0, 6, 12, 24, 36, 60]),
                 "return_policy_days": random.choice([7, 14, 30, 60, 90]),
             }
