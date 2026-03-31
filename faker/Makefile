@@ -21,7 +21,7 @@ customers:
 	@echo "Generating customer data..."
 	@poetry run python $(SCRIPT_DIR)/generate_customers.py \
 		--total-records 1000 \
-		--batch-size 100 \
+		--batch-size 1000 \
 		--output-format json \
 		--bucket-name raw
 
@@ -30,7 +30,7 @@ products:
 	@echo "Generating product data..."
 	@poetry run python $(SCRIPT_DIR)/generate_products.py \
 		--total-records 1000 \
-		--batch-size 100 \
+		--batch-size 1000 \
 		--output-format json \
 		--bucket-name raw
 
@@ -38,8 +38,8 @@ products:
 orders:
 	@echo "Generating order data..."
 	@poetry run python $(SCRIPT_DIR)/generate_orders.py \
-		--total-records 5000 \
-		--batch-size 500 \
+		--total-records 1000 \
+		--batch-size 1000 \
 		--output-format json \
 		--bucket-name raw
 
@@ -47,8 +47,8 @@ orders:
 payments:
 	@echo "Generating payment data..."
 	@poetry run python $(SCRIPT_DIR)/generate_payments.py \
-		--total-records 5000 \
-		--batch-size 500 \
+		--total-records 1000 \
+		--batch-size 1000 \
 		--output-format json \
 		--bucket-name raw
 

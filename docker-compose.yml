@@ -1,23 +1,28 @@
-version: '3.8'
-
 services:
   minio:
-    build: ./minio
+    build:
+      context: .
+      dockerfile: ./minio/minio.Dockerfile
     container_name: minio-forge-commerce
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: password
-      MINIO_DOMAIN: localhost
-      MINIO_REGION: us-east-1
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DOMAIN: ${MINIO_DOMAIN}
+      MINIO_REGION: ${MINIO_REGION}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
     volumes:
       - minio_data:/data/minio
     networks:
-      - minio-network
+      - default-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "${AWS_S3_ENDPOINT}/minio/health/live" ]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -28,27 +33,176 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DOMAIN: ${MINIO_DOMAIN}
+      MINIO_REGION: ${MINIO_REGION}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      MINIO_ALIAS: ${MINIO_ALIAS}
     volumes:
-      - .:/workspace
+      # - .:/workspace
+      - ./tools/minio-setup.sh:/workspace/tools/minio-setup.sh
     entrypoint: >
-      /bin/sh -c "
-      until /usr/bin/mc alias set myminio http://minio:9000 admin password; do
-        echo 'Waiting for MinIO to be ready...'
-        sleep 5
-      done;
-      /usr/bin/mc mb myminio/raw;
-      /usr/bin/mc mb myminio/cleaned;
-      /usr/bin/mc mb myminio/curated;
-      /usr/bin/mc admin user add myminio/ forge-commerce-user forge-commerce-pass;
-      /usr/bin/mc admin policy set myminio/ readwrite user=forge-commerce-user;
-      exit 0;
-      "
+      /bin/sh -c "chmod +x /workspace/tools/minio-setup.sh && /workspace/tools/minio-setup.sh"
     networks:
-      - minio-network
+      - default-network
+
+  spark-master:
+    build:
+      context: .
+      dockerfile: ./spark/spark.Dockerfile
+    container_name: spark-master
+    hostname: spark-master
+    command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
+    ports:
+      - "7077:7077" # Worker's communication port
+      - "8080:8080" # Master UI
+    environment:
+      SPARK_HOME: /opt/spark
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
+    networks:
+      - default-network
+
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: ./spark/spark.Dockerfile
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081" # Worker 1 UI port
+    environment:
+      SPARK_HOME: /opt/spark
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
+    networks:
+      - default-network
+
+  spark-worker-2:
+    build:
+      context: .
+      dockerfile: ./spark/spark.Dockerfile
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    command: bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081" # Worker 2 UI port
+    environment:
+      SPARK_HOME: /opt/spark
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
+    networks:
+      - default-network
+    
+  # For batch job submissions
+  spark-submit:
+    build:
+      context: .
+      dockerfile: ./spark/spark.Dockerfile
+    container_name: spark-submit
+    command: sleep infinity
+    volumes:
+      - ./spark/src:/opt/spark/work-dir/src
+    environment:
+      SPARK_HOME: /opt/spark
+      SPARK_MASTER: spark://spark-master:7077
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
+    networks:
+      - default-network
+    depends_on:
+      - spark-master
+
+  # For interactive Jupyter notebooks
+  jupyter:
+    build:
+      context: .
+      dockerfile: ./spark/jupyter.Dockerfile
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./spark/jupyter_notebook_config.py:/home/spark/.jupyter/jupyter_notebook_config.py
+      - ./spark/notebooks:/home/spark/notebooks
+      - ./.env:/home/spark/.env
+      - ./tools:/home/spark/tools
+    environment:
+      SPARK_HOME: /opt/spark
+      SPARK_MASTER: spark://spark-master:7077
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_REGION: ${AWS_S3_REGION}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 4G
+    command: >
+      jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token=''
+
+    networks:
+      - default-network
+    depends_on:
+      - spark-master
 
 volumes:
   minio_data:
 
+
 networks:
-  minio-network:
+  default-network:
     driver: bridge
