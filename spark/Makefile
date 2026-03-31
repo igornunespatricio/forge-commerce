@@ -68,7 +68,7 @@ spark-submit-curate-all-data:
 	make spark-submit-curate-products
 	make spark-submit-curate-orders
 	make spark-submit-curate-order-items
-# 	make spark-submit-curate-payments
+	make spark-submit-curate-payments
 
 spark-submit-all:
 	@echo "Submitting All Spark jobs"
