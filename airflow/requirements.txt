@@ -1,0 +1,27 @@
+# Apache Airflow Providers
+apache-airflow-providers-apache-spark
+apache-airflow-providers-amazon
+apache-airflow-providers-postgres
+apache-airflow-providers-redis
+apache-airflow-providers-http
+
+# AWS/S3 Integration
+boto3
+s3fs
+
+# Spark Integration
+pyspark
+
+# Data Processing
+pandas
+pyarrow
+
+# Database
+psycopg2-binary
+
+# Monitoring and Alerting
+flower
+
+# Utilities
+python-dotenv
+requests
