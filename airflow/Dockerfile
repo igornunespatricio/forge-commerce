@@ -16,11 +16,15 @@ RUN apt-get update \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy entrypoint script and make it executable (while still root)
+COPY airflow/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Switch back to airflow user
 USER airflow
 
 # Copy requirements file
-COPY requirements.txt /requirements.txt
+COPY airflow/requirements.txt /requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r /requirements.txt
@@ -33,14 +37,11 @@ RUN pip install pyspark
 
 # Copy DAGs, plugins, and config (will be mounted as volumes in development)
 # This is just to ensure the directories exist
-COPY dags/ ${AIRFLOW_HOME}/dags/
-COPY plugins/ ${AIRFLOW_HOME}/plugins/
-COPY config/ ${AIRFLOW_HOME}/config/
+COPY airflow/dags/ ${AIRFLOW_HOME}/dags/
+COPY airflow/plugins/ ${AIRFLOW_HOME}/plugins/
+COPY airflow/config/ ${AIRFLOW_HOME}/config/
 
-# Set proper ownership
-USER root
-RUN chown -R airflow:airflow ${AIRFLOW_HOME}
-USER airflow
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Set working directory
 WORKDIR ${AIRFLOW_HOME}
