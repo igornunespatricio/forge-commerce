@@ -22,6 +22,9 @@ psycopg2-binary
 # Monitoring and Alerting
 flower
 
+# ASGI Server for Airflow 3.x Web Stack
+# uvicorn[standard]>=0.30.0
+
 # Utilities
 python-dotenv
 requests

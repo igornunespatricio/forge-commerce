@@ -16,7 +16,7 @@ boto3 = "^1.33.0"
 
 # API dependencies
 fastapi = "^0.104.0"
-uvicorn = { extras = ["standard"], version = "^0.24.0" }
+# uvicorn = { extras = ["standard"], version = "^0.30.0" }
 pydantic = "^2.5.0"
 python-multipart = "^0.0.6"
 

@@ -5,7 +5,6 @@ This module provides custom operators for submitting Spark jobs to the Spark clu
 """
 
 from airflow.models import BaseOperator
-from airflow.utils.decorators import apply_defaults
 from airflow.exceptions import AirflowException
 import subprocess
 import logging
@@ -45,7 +44,6 @@ class SparkSubmitJobOperator(BaseOperator):
     ui_color = "#FFFFFF"
     ui_fgcolor = "#000000"
 
-    @apply_defaults
     def __init__(
         self,
         spark_script,

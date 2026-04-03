@@ -32,6 +32,11 @@ RUN pip install --no-cache-dir -r /requirements.txt
 # Install Poetry for Faker data generation
 RUN pip install poetry
 
+# Install Faker dependencies
+# COPY faker/pyproject.toml /tmp/faker/pyproject.toml
+# COPY faker/poetry.lock /tmp/faker/poetry.lock
+# RUN cd /tmp/faker && poetry install --no-root --only main
+
 # Install PySpark for SparkSubmitOperator
 RUN pip install pyspark
 

@@ -11,10 +11,9 @@ Owner: Data Engineering Team
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.apache.spark.operators.spark import SparkSubmitOperator
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.utils.task_group import TaskGroup
-from airflow.utils.dates import days_ago
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 # Default arguments for the DAG
 default_args = {
@@ -34,8 +33,8 @@ dag = DAG(
     "ecommerce_etl_dag",
     default_args=default_args,
     description="E-Commerce Data Warehouse ETL Pipeline",
-    schedule_interval="0 2 * * *",  # Daily at 2:00 AM
-    start_date=days_ago(1),
+    schedule="0 2 * * *",  # Daily at 2:00 AM
+    start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=["ecommerce", "etl", "data-warehouse"],
     max_active_tasks=4,
