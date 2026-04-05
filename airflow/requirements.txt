@@ -11,6 +11,7 @@ s3fs
 
 # Spark Integration
 pyspark
+delta-spark
 
 # Data Processing
 pandas

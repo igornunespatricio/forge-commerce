@@ -16,6 +16,16 @@ RUN apt-get update \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Java for Spark-submit
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-17-jdk-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+
 # Copy entrypoint script and make it executable (while still root)
 COPY airflow/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -37,8 +47,13 @@ RUN pip install poetry
 # COPY faker/poetry.lock /tmp/faker/poetry.lock
 # RUN cd /tmp/faker && poetry install --no-root --only main
 
-# Install PySpark for SparkSubmitOperator
-RUN pip install pyspark
+# Install PySpark and delta-spark for SparkSubmitOperator
+RUN pip install pyspark delta-spark
+
+
+# Set SPARK_HOME to pyspark's installation directory
+# ENV SPARK_HOME=/home/airflow/.local/lib/python3.12/site-packages/pyspark
+# ENV PATH=$SPARK_HOME/bin:$PATH
 
 # Copy DAGs, plugins, and config (will be mounted as volumes in development)
 # This is just to ensure the directories exist
