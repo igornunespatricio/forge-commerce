@@ -26,63 +26,70 @@ from faker.providers import BaseProvider
 import numpy as np
 
 # Add the parent directory to Python path to import tools module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from tools.storage_client import StorageClient, StorageClientFactory, upload_csv, upload_json, upload_parquet
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+from tools.storage_client import (
+    StorageClient,
+    StorageClientFactory,
+    upload_csv,
+    upload_json,
+    upload_parquet,
+)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler('logs/generate_customers.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
+        logging.FileHandler("logs/generate_customers.log"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 logger = logging.getLogger(__name__)
 
 
 class CustomerProvider(BaseProvider):
     """Custom Faker provider for e-commerce customer data."""
-    
+
     def customer_segment(self) -> str:
         """Generate customer segment based on spending patterns."""
         segments = [
-            ('premium', 0.10),    # 10% premium customers
-            ('regular', 0.60),    # 60% regular customers  
-            ('occasional', 0.30)  # 30% occasional customers
+            ("premium", 0.10),  # 10% premium customers
+            ("regular", 0.60),  # 60% regular customers
+            ("occasional", 0.30),  # 30% occasional customers
         ]
-        return random.choices(population=[s[0] for s in segments], 
-                            weights=[s[1] for s in segments], k=1)[0]
-    
+        return random.choices(
+            population=[s[0] for s in segments], weights=[s[1] for s in segments], k=1
+        )[0]
+
     def registration_date(self, start_date: datetime, end_date: datetime) -> datetime:
         """Generate registration date with seasonal patterns."""
         # Add seasonal patterns (more registrations in Q1 and Q4)
         date_range = end_date - start_date
         random_days = random.randint(0, date_range.days)
-        
+
         # Apply seasonal weighting
         season_factor = 1.0
         test_date = start_date + timedelta(days=random_days)
         month = test_date.month
-        
+
         if month in [1, 2, 11, 12]:  # Q1 and Q4 peaks
             season_factor = 1.5
         elif month in [6, 7, 8]:  # Summer dip
             season_factor = 0.8
-            
+
         # Adjust probability based on season
         if random.random() < (season_factor / 2.0):
             return test_date
         else:
             return self.registration_date(start_date, end_date)
-    
+
     def customer_lifetime_value(self, segment: str) -> float:
         """Generate customer lifetime value based on segment."""
-        if segment == 'premium':
+        if segment == "premium":
             # High spenders: $1000-$10000
             return round(random.lognormvariate(7.5, 1.5), 2)
-        elif segment == 'regular':
-            # Medium spenders: $100-$2000  
+        elif segment == "regular":
+            # Medium spenders: $100-$2000
             return round(random.lognormvariate(5.0, 1.2), 2)
         else:
             # Occasional spenders: $10-$500
@@ -91,279 +98,373 @@ class CustomerProvider(BaseProvider):
 
 class CustomerGenerator:
     """Generates synthetic customer data with realistic patterns."""
-    
+
     def __init__(self, config: Dict):
         self.config = config
-        self.faker = Faker('en_US')
+        self.faker = Faker("en_US")
         self.faker.add_provider(CustomerProvider)
-        
+
         # MinIO configuration
         self.storage_client = StorageClientFactory.create_minio_client(config)
-        
+
         # Geographic distribution (realistic US distribution)
         self.geographic_distribution = [
-            ('United States', 'US', 0.60),
-            ('Canada', 'CA', 0.10), 
-            ('United Kingdom', 'GB', 0.08),
-            ('Germany', 'DE', 0.07),
-            ('France', 'FR', 0.05),
-            ('Australia', 'AU', 0.04),
-            ('Other', 'XX', 0.06)
+            ("United States", "US", 0.60),
+            ("Canada", "CA", 0.10),
+            ("United Kingdom", "GB", 0.08),
+            ("Germany", "DE", 0.07),
+            ("France", "FR", 0.05),
+            ("Australia", "AU", 0.04),
+            ("Other", "XX", 0.06),
         ]
-        
+
         # Payment method preferences by country
         self.payment_methods = {
-            'US': [('credit_card', 0.50), ('paypal', 0.30), ('apple_pay', 0.15), ('google_pay', 0.05)],
-            'CA': [('credit_card', 0.45), ('paypal', 0.35), ('interac', 0.15), ('google_pay', 0.05)],
-            'GB': [('credit_card', 0.40), ('paypal', 0.35), ('apple_pay', 0.20), ('google_pay', 0.05)],
-            'DE': [('credit_card', 0.55), ('paypal', 0.25), ('giropay', 0.15), ('sofort', 0.05)],
-            'FR': [('credit_card', 0.50), ('paypal', 0.30), ('apple_pay', 0.15), ('google_pay', 0.05)],
-            'AU': [('credit_card', 0.45), ('paypal', 0.35), ('apple_pay', 0.15), ('google_pay', 0.05)],
-            'XX': [('credit_card', 0.60), ('paypal', 0.25), ('other', 0.15)]
+            "US": [
+                ("credit_card", 0.50),
+                ("paypal", 0.30),
+                ("apple_pay", 0.15),
+                ("google_pay", 0.05),
+            ],
+            "CA": [
+                ("credit_card", 0.45),
+                ("paypal", 0.35),
+                ("interac", 0.15),
+                ("google_pay", 0.05),
+            ],
+            "GB": [
+                ("credit_card", 0.40),
+                ("paypal", 0.35),
+                ("apple_pay", 0.20),
+                ("google_pay", 0.05),
+            ],
+            "DE": [
+                ("credit_card", 0.55),
+                ("paypal", 0.25),
+                ("giropay", 0.15),
+                ("sofort", 0.05),
+            ],
+            "FR": [
+                ("credit_card", 0.50),
+                ("paypal", 0.30),
+                ("apple_pay", 0.15),
+                ("google_pay", 0.05),
+            ],
+            "AU": [
+                ("credit_card", 0.45),
+                ("paypal", 0.35),
+                ("apple_pay", 0.15),
+                ("google_pay", 0.05),
+            ],
+            "XX": [("credit_card", 0.60), ("paypal", 0.25), ("other", 0.15)],
         }
-    
+
     def generate_batch(self, batch_size: int, batch_num: int) -> List[Dict]:
         """Generate a batch of customer records."""
         batch_data = []
-        
+
         for i in range(batch_size):
-            customer_id = self.config['start_id'] + (batch_num * self.config['batch_size']) + i
-            
+            customer_id = (
+                self.config["start_id"] + (batch_num * self.config["batch_size"]) + i
+            )
+
             # Select country with realistic distribution
             country_info = random.choices(
                 population=[g[:2] for g in self.geographic_distribution],
                 weights=[g[2] for g in self.geographic_distribution],
-                k=1
+                k=1,
             )[0]
             country_name, country_code = country_info
-            
+
             # Generate customer data
             segment = self.faker.customer_segment()
             registration_date = self.faker.registration_date(
-                self.config['start_date'], 
-                self.config['end_date']
+                self.config["start_date"], self.config["end_date"]
             )
-            
+
             # Generate realistic age distribution
             age = self.faker.random_int(min=18, max=80)
-            birth_date = registration_date - timedelta(days=age * 365 + self.faker.random_int(min=0, max=365))
-            
+            birth_date = registration_date - timedelta(
+                days=age * 365 + self.faker.random_int(min=0, max=365)
+            )
+
             # Generate payment methods
-            preferred_methods = self.payment_methods.get(country_code, self.payment_methods['XX'])
+            preferred_methods = self.payment_methods.get(
+                country_code, self.payment_methods["XX"]
+            )
             payment_method = random.choices(
                 population=[p[0] for p in preferred_methods],
                 weights=[p[1] for p in preferred_methods],
-                k=1
+                k=1,
             )[0]
-            
+
             customer_data = {
-                'customer_id': customer_id,
-                'customer_uuid': self.faker.uuid4(),
-                'first_name': self.faker.first_name(),
-                'last_name': self.faker.last_name(),
-                'email': self.faker.email(),
-                'phone': self.faker.phone_number(),
-                'date_of_birth': birth_date.strftime('%Y-%m-%d'),
-                'registration_date': registration_date.strftime('%Y-%m-%d'),
-                'country': country_name,
-                'country_code': country_code,
-                'city': self.faker.city(),
-                'address': self.faker.address().replace('\n', ', '),
-                'postal_code': self.faker.postcode(),
-                'customer_segment': segment,
-                'customer_lifetime_value': self.faker.customer_lifetime_value(segment),
-                'preferred_payment_method': payment_method,
-                'is_active': self.faker.boolean(chance_of_getting_true=85),
-                'last_login_date': self.faker.date_between(start_date='-1y', end_date='today').strftime('%Y-%m-%d'),
-                'total_orders': self.faker.random_int(min=0, max=100),
-                'total_spent': round(random.uniform(0, 5000), 2),
-                'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                "customer_id": customer_id,
+                "customer_uuid": self.faker.uuid4(),
+                "first_name": self.faker.first_name(),
+                "last_name": self.faker.last_name(),
+                "email": self.faker.email(),
+                "phone": self.faker.phone_number(),
+                "date_of_birth": birth_date.strftime("%Y-%m-%d"),
+                "registration_date": registration_date.strftime("%Y-%m-%d"),
+                "country": country_name,
+                "country_code": country_code,
+                "city": self.faker.city(),
+                "address": self.faker.address().replace("\n", ", "),
+                "postal_code": self.faker.postcode(),
+                "customer_segment": segment,
+                "customer_lifetime_value": self.faker.customer_lifetime_value(segment),
+                "preferred_payment_method": payment_method,
+                "is_active": self.faker.boolean(chance_of_getting_true=85),
+                "last_login_date": self.faker.date_between(
+                    start_date="-1y", end_date="today"
+                ).strftime("%Y-%m-%d"),
+                "total_orders": self.faker.random_int(min=0, max=100),
+                "total_spent": round(random.uniform(0, 5000), 2),
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
-            
+
             batch_data.append(customer_data)
-        
+
         return batch_data
-    
+
     def validate_data(self, data: List[Dict]) -> bool:
         """Validate generated customer data."""
         if not data:
             return False
-        
+
         # Check for required fields
-        required_fields = ['customer_id', 'email', 'country', 'registration_date']
+        required_fields = ["customer_id", "email", "country", "registration_date"]
         for record in data:
             for field in required_fields:
                 if not record.get(field):
-                    logger.error(f"Missing required field: {field} in record {record.get('customer_id')}")
+                    logger.error(
+                        f"Missing required field: {field} in record {record.get('customer_id')}"
+                    )
                     return False
-            
+
             # Validate email format
-            if '@' not in record['email']:
-                logger.error(f"Invalid email format: {record['email']} in record {record.get('customer_id')}")
+            if "@" not in record["email"]:
+                logger.error(
+                    f"Invalid email format: {record['email']} in record {record.get('customer_id')}"
+                )
                 return False
-        
+
         return True
-    
-    def save_batch(self, data: List[Dict], batch_num: int, output_format: str = 'csv') -> str:
+
+    def save_batch(
+        self, data: List[Dict], batch_num: int, output_format: str = "csv"
+    ) -> str:
         """Save a batch of customer data to MinIO."""
         if not self.validate_data(data):
             raise ValueError("Data validation failed")
-        
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"customers_batch_{batch_num:04d}_{timestamp}"
         filename_with_prefix = f"{self.config.get('filepath_prefix')}/{filename}.json"
         filepath = f"{self.config.get('endpoint_url')}/{filename_with_prefix}"
         try:
-            if output_format.lower() == 'csv':
+            if output_format.lower() == "csv":
                 raise NotImplementedError("CSV upload is not implemented yet")
-            elif output_format.lower() == 'json':
+            elif output_format.lower() == "json":
                 df = pd.DataFrame(data)
                 success = upload_json(
-                    bucket_name=self.config.get('bucket_name'),
+                    bucket_name=self.config.get("bucket_name"),
                     key=filename_with_prefix,
-                    data=df.to_dict(orient='records'),
-                    storage_client=self.storage_client
+                    data=df.to_dict(orient="records"),
+                    storage_client=self.storage_client,
                 )
                 if not success:
                     raise Exception(f"Failed to upload JSON batch {batch_num}")
                 logger.info(f"Uploaded batch {batch_num} to MinIO as {filename}.json")
                 return filepath
-            elif output_format.lower() == 'parquet':
+            elif output_format.lower() == "parquet":
                 raise NotImplementedError("Parquet upload is not implemented yet")
             else:
                 raise ValueError(f"Unsupported output format: {output_format}")
         except Exception as e:
             logger.error(f"Error uploading batch {batch_num} to MinIO: {str(e)}")
             raise
-    
+
     def generate_single_customer(self, customer_id: int = None) -> Dict:
         """Generate a single customer record for API use using generate_batch method."""
         if customer_id is None:
             customer_id = self.faker.random_int(min=1, max=999999999)
-        
+
         # Temporarily set batch_size to 1 for single customer generation
-        original_batch_size = self.config.get('batch_size', 1)
-        self.config['batch_size'] = 1
-        
+        original_batch_size = self.config.get("batch_size", 1)
+        self.config["batch_size"] = 1
+
         try:
             # Use generate_batch method with batch size 1
             batch_data = self.generate_batch(batch_size=1, batch_num=0)
-            
+
             # Extract the single customer record from the batch
             customer_data = batch_data[0]
-            
+
             # Override the customer_id if provided
             if customer_id is not None:
-                customer_data['customer_id'] = customer_id
-            
+                customer_data["customer_id"] = customer_id
+
             return customer_data
         finally:
             # Restore original batch_size
-            self.config['batch_size'] = original_batch_size
+            self.config["batch_size"] = original_batch_size
 
     def generate_customers(self) -> Dict[str, int]:
         """Generate all customer data in batches."""
-        total_records = self.config['total_records']
-        batch_size = self.config['batch_size']
-        output_format = self.config['output_format']
-        
+        total_records = self.config["total_records"]
+        batch_size = self.config["batch_size"]
+        output_format = self.config["output_format"]
+
         total_batches = (total_records + batch_size - 1) // batch_size
         files_created = []
         total_records_generated = 0
-        
-        logger.info(f"Starting customer generation: {total_records:,} records in {total_batches} batches")
-        
+
+        logger.info(
+            f"Starting customer generation: {total_records:,} records in {total_batches} batches"
+        )
+
         for batch_num in range(total_batches):
-            current_batch_size = min(batch_size, total_records - total_records_generated)
-            
-            logger.info(f"Generating batch {batch_num + 1}/{total_batches} ({current_batch_size:,} records)")
-            
+            current_batch_size = min(
+                batch_size, total_records - total_records_generated
+            )
+
+            logger.info(
+                f"Generating batch {batch_num + 1}/{total_batches} ({current_batch_size:,} records)"
+            )
+
             try:
                 batch_data = self.generate_batch(current_batch_size, batch_num)
                 filepath = self.save_batch(batch_data, batch_num, output_format)
-                
+
                 files_created.append(filepath)
                 total_records_generated += len(batch_data)
-                
+
                 # Log progress
                 progress = (total_records_generated / total_records) * 100
-                logger.info(f"Progress: {progress:.1f}% ({total_records_generated:,}/{total_records:,})")
-                
+                logger.info(
+                    f"Progress: {progress:.1f}% ({total_records_generated:,}/{total_records:,})"
+                )
+
             except Exception as e:
                 logger.error(f"Error generating batch {batch_num}: {str(e)}")
                 raise
-        
-        logger.info(f"Customer generation completed: {total_records_generated:,} records in {len(files_created)} files")
-        
+
+        logger.info(
+            f"Customer generation completed: {total_records_generated:,} records in {len(files_created)} files"
+        )
+
         return {
-            'total_records': total_records_generated,
-            'files_created': len(files_created),
-            'files': files_created
+            "total_records": total_records_generated,
+            "files_created": len(files_created),
+            "files": files_created,
         }
 
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Generate synthetic customer data')
-    parser.add_argument('--total-records', type=int, default=1000000, 
-                       help='Total number of customer records to generate (default: 1,000,000)')
-    parser.add_argument('--batch-size', type=int, default=50000,
-                       help='Number of records per batch (default: 50,000)')
-    parser.add_argument('--output-format', type=str, choices=['csv', 'json', 'parquet'], 
-                       default='csv', help='Output file format (default: csv)')
-    parser.add_argument('--start-date', type=str, default='2020-01-01',
-                       help='Start date for registration dates (default: 2020-01-01)')
-    parser.add_argument('--end-date', type=str, default='2024-12-31',
-                       help='End date for registration dates (default: 2024-12-31)')
-    parser.add_argument('--start-id', type=int, default=1,
-                       help='Starting customer ID (default: 1)')
-    parser.add_argument('--seed', type=int, default=42,
-                       help='Random seed for reproducible results (default: 42)')
-    parser.add_argument('--bucket-name', type=str, default='forge-commerce', help='Bucket Name (default: forge-commerce)')
-    parser.add_argument('--endpoint-url', type=str, default='http://localhost:9000', help='Endpoint URL (default: http://localhost:9000)')
-    parser.add_argument('--filepath-prefix', type=str, default='customers', help='Filepath prefix (default: customers)')
+    parser = argparse.ArgumentParser(description="Generate synthetic customer data")
+    parser.add_argument(
+        "--total-records",
+        type=int,
+        default=1000000,
+        help="Total number of customer records to generate (default: 1,000,000)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=50000,
+        help="Number of records per batch (default: 50,000)",
+    )
+    parser.add_argument(
+        "--output-format",
+        type=str,
+        choices=["csv", "json", "parquet"],
+        default="csv",
+        help="Output file format (default: csv)",
+    )
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        default="2020-01-01",
+        help="Start date for registration dates (default: 2020-01-01)",
+    )
+    parser.add_argument(
+        "--end-date",
+        type=str,
+        default="2024-12-31",
+        help="End date for registration dates (default: 2024-12-31)",
+    )
+    parser.add_argument(
+        "--start-id", type=int, default=1, help="Starting customer ID (default: 1)"
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducible results (default: 42)",
+    )
+    parser.add_argument(
+        "--bucket-name",
+        type=str,
+        default="forge-commerce",
+        help="Bucket Name (default: forge-commerce)",
+    )
+    parser.add_argument(
+        "--endpoint-url",
+        type=str,
+        default="http://localhost:9000",
+        help="Endpoint URL (default: http://localhost:9000)",
+    )
+    parser.add_argument(
+        "--filepath-prefix",
+        type=str,
+        default="customers",
+        help="Filepath prefix (default: customers)",
+    )
     return parser.parse_args()
 
 
 def main():
     """Main execution function."""
     args = parse_arguments()
-    
+
     # Set random seed for reproducibility
     random.seed(args.seed)
     np.random.seed(args.seed)
-    
+
     # Configuration
     config = {
-        'total_records': args.total_records,
-        'batch_size': args.batch_size,
-        'output_format': args.output_format,
-        'start_date': datetime.strptime(args.start_date, '%Y-%m-%d'),
-        'end_date': datetime.strptime(args.end_date, '%Y-%m-%d'),
-        'start_id': args.start_id,
-        'endpoint_url': 'http://localhost:9000',
-        'aws_access_key_id': 'admin',
-        'aws_secret_access_key': 'password',
-        'bucket_name': args.bucket_name,
-        'filepath_prefix': args.filepath_prefix
+        "total_records": args.total_records,
+        "batch_size": args.batch_size,
+        "output_format": args.output_format,
+        "start_date": datetime.strptime(args.start_date, "%Y-%m-%d"),
+        "end_date": datetime.strptime(args.end_date, "%Y-%m-%d"),
+        "start_id": args.start_id,
+        "endpoint_url": args.endpoint_url,  # 'http://localhost:9000',
+        "aws_access_key_id": "admin",
+        "aws_secret_access_key": "password",
+        "bucket_name": args.bucket_name,
+        "filepath_prefix": args.filepath_prefix,
     }
-    
+
     logger.info(f"Customer generation configuration: {config}")
-    
+
     # Create generator and run
     generator = CustomerGenerator(config)
-    
+
     try:
         results = generator.generate_customers()
         logger.info(f"Generation completed successfully:")
         logger.info(f"  Total records: {results['total_records']:,}")
         logger.info(f"  Files created: {results['files_created']}")
-        
+
     except Exception as e:
         logger.error(f"Customer generation failed: {str(e)}")
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -28,3 +28,4 @@ flower
 # Utilities
 python-dotenv
 requests
+faker

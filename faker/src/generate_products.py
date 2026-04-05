@@ -663,7 +663,7 @@ def main():
         "batch_size": args.batch_size,
         "output_format": args.output_format,
         "start_id": args.start_id,
-        "endpoint_url": "http://localhost:9000",
+        "endpoint_url": args.endpoint_url,  # 'http://localhost:9000',
         "aws_access_key_id": "admin",
         "aws_secret_access_key": "password",
         "bucket_name": args.bucket_name,

@@ -750,7 +750,7 @@ def main():
         "start_date": datetime.strptime(args.start_date, "%Y-%m-%d"),
         "end_date": datetime.strptime(args.end_date, "%Y-%m-%d"),
         "start_id": args.start_id,
-        "endpoint_url": "http://localhost:9000",
+        "endpoint_url": args.endpoint_url,  # 'http://localhost:9000',
         "aws_access_key_id": "admin",
         "aws_secret_access_key": "password",
         "bucket_name": args.bucket_name,

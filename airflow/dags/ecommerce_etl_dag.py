@@ -11,9 +11,12 @@ Owner: Data Engineering Team
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import timedelta, datetime
+import sys
+import os
 
 # Default arguments for the DAG
 default_args = {
@@ -53,6 +56,99 @@ spark_conf = {
     "spark.sql.catalog.spark_catalog": "org.apache.spark.sql.delta.catalog.DeltaCatalog",
 }
 
+# Path to faker scripts
+FAKER_SCRIPTS_PATH = "/opt/forge-commerce/faker/src"
+
+
+# -----------------------------------------------------------------------------
+# Python wrapper functions for data generation
+# -----------------------------------------------------------------------------
+def _generate_customers(**context):
+    """Generate customer data using the Faker script."""
+    sys.path.insert(0, FAKER_SCRIPTS_PATH)
+    # Set up arguments matching the Makefile
+    sys.argv = [
+        "generate_customers.py",
+        "--total-records",
+        "1000",
+        "--batch-size",
+        "1000",
+        "--output-format",
+        "json",
+        "--bucket-name",
+        "raw",
+        "--endpoint-url",
+        "http://minio:9000",
+    ]
+    # Import and run the main function
+    import generate_customers
+
+    generate_customers.main()
+
+
+def _generate_products(**context):
+    """Generate product data using the Faker script."""
+    sys.path.insert(0, FAKER_SCRIPTS_PATH)
+    sys.argv = [
+        "generate_products.py",
+        "--total-records",
+        "1000",
+        "--batch-size",
+        "1000",
+        "--output-format",
+        "json",
+        "--bucket-name",
+        "raw",
+        "--endpoint-url",
+        "http://minio:9000",
+    ]
+    import generate_products
+
+    generate_products.main()
+
+
+def _generate_orders(**context):
+    """Generate order data using the Faker script."""
+    sys.path.insert(0, FAKER_SCRIPTS_PATH)
+    sys.argv = [
+        "generate_orders.py",
+        "--total-records",
+        "1000",
+        "--batch-size",
+        "1000",
+        "--output-format",
+        "json",
+        "--bucket-name",
+        "raw",
+        "--endpoint-url",
+        "http://minio:9000",
+    ]
+    import generate_orders
+
+    generate_orders.main()
+
+
+def _generate_payments(**context):
+    """Generate payment data using the Faker script."""
+    sys.path.insert(0, FAKER_SCRIPTS_PATH)
+    sys.argv = [
+        "generate_payments.py",
+        "--total-records",
+        "1000",
+        "--batch-size",
+        "1000",
+        "--output-format",
+        "json",
+        "--bucket-name",
+        "raw",
+        "--endpoint-url",
+        "http://minio:9000",
+    ]
+    import generate_payments
+
+    generate_payments.main()
+
+
 # =============================================================================
 # Task Definitions
 # =============================================================================
@@ -70,31 +166,31 @@ end = EmptyOperator(
 )
 
 # -----------------------------------------------------------------------------
-# Data Generation Tasks (using Faker via Make)
+# Data Generation Tasks (using PythonOperator with Faker scripts)
 # -----------------------------------------------------------------------------
 with TaskGroup(group_id="data_generation", dag=dag) as data_generation:
 
-    generate_customers = BashOperator(
+    generate_customers = PythonOperator(
         task_id="generate_customers",
-        bash_command="cd /opt/forge-commerce/faker && make customers",
+        python_callable=_generate_customers,
         dag=dag,
     )
 
-    generate_products = BashOperator(
+    generate_products = PythonOperator(
         task_id="generate_products",
-        bash_command="cd /opt/forge-commerce/faker && make products",
+        python_callable=_generate_products,
         dag=dag,
     )
 
-    generate_orders = BashOperator(
+    generate_orders = PythonOperator(
         task_id="generate_orders",
-        bash_command="cd /opt/forge-commerce/faker && make orders",
+        python_callable=_generate_orders,
         dag=dag,
     )
 
-    generate_payments = BashOperator(
+    generate_payments = PythonOperator(
         task_id="generate_payments",
-        bash_command="cd /opt/forge-commerce/faker && make payments",
+        python_callable=_generate_payments,
         dag=dag,
     )
 

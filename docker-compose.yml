@@ -42,6 +42,7 @@ x-airflow-common: &airflow-common
     - ./airflow/plugins:/opt/airflow/plugins
     - ./faker:/opt/forge-commerce/faker
     - ./spark/src:/opt/spark/work-dir/src
+    - ./tools:/opt/forge-commerce/tools
   user: "${AIRFLOW_UID:-50000}:0"
   networks:
     - default-network
