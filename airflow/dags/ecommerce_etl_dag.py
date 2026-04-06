@@ -24,7 +24,7 @@ default_args = {
     "depends_on_past": False,
     "email_on_failure": True,
     "email_on_retry": False,
-    "retries": 3,
+    "retries": 0,
     "retry_delay": timedelta(minutes=5),
     "retry_exponential_backoff": True,
     "max_retry_delay": timedelta(minutes=30),
@@ -36,16 +36,17 @@ dag = DAG(
     "ecommerce_etl_dag",
     default_args=default_args,
     description="E-Commerce Data Warehouse ETL Pipeline",
-    schedule="0 2 * * *",  # Daily at 2:00 AM
+    schedule=None,  # "0 2 * * *",  # Daily at 2:00 AM
     start_date=datetime(2024, 1, 1),
     catchup=False,
     tags=["ecommerce", "etl", "data-warehouse"],
-    max_active_tasks=4,
+    max_active_tasks=1,
 )
 
 # Spark configuration common to all Spark jobs
 spark_conf = {
     "spark.master": "spark://spark-master:7077",
+    # "spark.submit.deployMode": "cluster",
     "spark.hadoop.fs.s3a.access.key": "forge-commerce-user",
     "spark.hadoop.fs.s3a.secret.key": "forge-commerce-pass",
     "spark.hadoop.fs.s3a.endpoint": "http://minio:9000",
@@ -194,6 +195,8 @@ with TaskGroup(group_id="data_generation", dag=dag) as data_generation:
         dag=dag,
     )
 
+    (generate_customers >> generate_products >> generate_orders >> generate_payments)
+
 # -----------------------------------------------------------------------------
 # Data Cleaning Tasks (using SparkSubmitOperator)
 # -----------------------------------------------------------------------------
@@ -231,6 +234,8 @@ with TaskGroup(group_id="data_cleaning", dag=dag) as data_cleaning:
         dag=dag,
     )
 
+    (clean_customers >> clean_products >> clean_orders >> clean_payments)
+
 # -----------------------------------------------------------------------------
 # Data Quality Checks (After Cleaning)
 # -----------------------------------------------------------------------------
@@ -258,6 +263,13 @@ with TaskGroup(group_id="data_quality_checks", dag=dag) as data_quality_checks:
         task_id="quality_check_payments",
         bash_command='echo "Running data quality checks on payments..."',
         dag=dag,
+    )
+
+    (
+        quality_check_customers
+        >> quality_check_products
+        >> quality_check_orders
+        >> quality_check_payments
     )
 
 # -----------------------------------------------------------------------------
@@ -303,6 +315,14 @@ with TaskGroup(group_id="data_curation", dag=dag) as data_curation:
         conf=spark_conf,
         verbose=True,
         dag=dag,
+    )
+
+    (
+        curate_customers
+        >> curate_products
+        >> curate_orders
+        >> curate_order_items
+        >> curate_payments
     )
 
 # -----------------------------------------------------------------------------
