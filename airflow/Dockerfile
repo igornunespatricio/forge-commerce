@@ -48,7 +48,19 @@ RUN pip install poetry
 # RUN cd /tmp/faker && poetry install --no-root --only main
 
 # Install PySpark and delta-spark for SparkSubmitOperator
-RUN pip install pyspark delta-spark
+RUN pip install pyspark==3.5.3 delta-spark
+
+
+RUN curl -L -o /home/airflow/.local/lib/python3.12/site-packages/pyspark/jars/hadoop-aws-3.3.4.jar \
+    https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar && \
+    curl -L -o /home/airflow/.local/lib/python3.12/site-packages/pyspark/jars/aws-java-sdk-bundle-1.12.530.jar \
+    https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.530/aws-java-sdk-bundle-1.12.530.jar
+
+# Delta Lake JARs (matching PySpark 3.5.3 / Hadoop 3.3.4)
+RUN curl -L -o /home/airflow/.local/lib/python3.12/site-packages/pyspark/jars/delta-spark_2.12-3.2.0.jar \
+    https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar && \
+    curl -L -o /home/airflow/.local/lib/python3.12/site-packages/pyspark/jars/delta-storage-3.2.0.jar \
+    https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar
 
 
 # Set SPARK_HOME to pyspark's installation directory

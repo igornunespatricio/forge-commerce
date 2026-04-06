@@ -10,8 +10,8 @@ boto3
 s3fs
 
 # Spark Integration
-pyspark
-delta-spark
+# pyspark
+# delta-spark
 
 # Data Processing
 pandas
