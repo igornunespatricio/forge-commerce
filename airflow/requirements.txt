@@ -1,0 +1,32 @@
+# Apache Airflow Providers
+apache-airflow-providers-apache-spark
+apache-airflow-providers-amazon
+apache-airflow-providers-postgres
+apache-airflow-providers-redis
+apache-airflow-providers-http
+
+# AWS/S3 Integration
+boto3
+s3fs
+
+# Spark Integration
+# pyspark
+# delta-spark
+
+# Data Processing
+pandas
+pyarrow
+
+# Database
+psycopg2-binary
+
+# Monitoring and Alerting
+flower
+
+# ASGI Server for Airflow 3.x Web Stack
+# uvicorn[standard]>=0.30.0
+
+# Utilities
+python-dotenv
+requests
+faker
