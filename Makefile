@@ -33,6 +33,38 @@ spark-submit-all:
 	cd spark && make spark-submit-all
 
 # =============================================================================
+# Data Lake Commands
+# =============================================================================
+
+data-lake-up:
+	@echo "Starting data lake services (MinIO, MariaDB, Hive Metastore, Trino)"
+	docker compose down
+	docker compose up -d minio metastore-db metastore trino
+
+data-lake-down:
+	@echo "Stopping data lake services"
+	docker compose down
+
+data-lake-logs:
+	@echo "Showing data lake logs"
+	docker compose logs -f minio metastore-db metastore trino
+
+data-lake-status:
+	@echo "Checking data lake service status"
+	docker compose ps minio metastore-db metastore trino
+
+data-lake-reset:
+	@echo "Resetting data lake services (WARNING: deletes all metastore data)"
+	docker compose down
+	docker volume rm forge-commerce_metastore-db-volume
+	@echo "Metastore database reset complete. You can now run 'make data-lake-up' again."
+
+data-lake-rebuild:
+	@echo "Rebuilding metastore image with no cache (complete clean build)"
+	docker compose build --no-cache metastore
+	@echo "Metastore image rebuilt successfully."
+
+# =============================================================================
 # Airflow Commands
 # =============================================================================
 
