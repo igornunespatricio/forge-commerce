@@ -8,7 +8,7 @@ CREATE TABLE hive.test.test_table (
 )
 WITH (
   format = 'PARQUET',
-  external_location = 's3://raw/test_table'
+  external_location = 's3a://raw/test_table'
 );
 
 INSERT INTO hive.test.test_table VALUES (1, 'test'), (2, 'forge-commerce');
