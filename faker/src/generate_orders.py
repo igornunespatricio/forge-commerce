@@ -231,9 +231,9 @@ class OrderGenerator:
     def _get_last_order_id(self) -> int:
         """Get the last order ID from storage and return next available ID."""
         try:
-            # List all order files from storage
+            # List all order files from storage using filepath_prefix
             order_files = self.storage_client.list_objects(
-                self.config["bucket_name"], "orders"
+                self.config["bucket_name"], self.config.get("filepath_prefix")
             )
 
             if not order_files:
@@ -551,10 +551,13 @@ class OrderGenerator:
 
     def _load_reference_data_from_storage(self) -> Tuple[List[Dict], List[Dict]]:
         """Load customer and product data from storage using storage client."""
+        # Extract base path from filepath_prefix (e.g., "raw" from "raw/orders")
+        base_path = self.config.get("filepath_prefix").rsplit("/", 1)[0]
+
         customer_data: List[Dict] = []
         product_data: List[Dict] = []
         customer_data_list_objects = self.storage_client.list_objects(
-            self.config.get("bucket_name"), "customers"
+            self.config.get("bucket_name"), f"{base_path}/customers"
         )
         for customer_data_object in customer_data_list_objects:
             customer_data_list = self.storage_client.download_object_as_json(
@@ -562,7 +565,7 @@ class OrderGenerator:
             )
             customer_data.extend(customer_data_list)
         product_data_list_objects = self.storage_client.list_objects(
-            self.config.get("bucket_name"), "products"
+            self.config.get("bucket_name"), f"{base_path}/products"
         )
         for product_data_object in product_data_list_objects:
             product_data_list = self.storage_client.download_object_as_json(
