@@ -6,6 +6,10 @@ down:
 	@echo "Stopping containers"
 	docker compose down
 
+down-clean:
+	@echo "Stopping containers and removing all volumes"
+	docker compose down --volumes
+
 build:
 	@echo "Building all images"
 	docker compose build
@@ -39,7 +43,7 @@ spark-submit-all:
 data-lake-up:
 	@echo "Starting data lake services (MinIO, MariaDB, Hive Metastore, Trino)"
 	docker compose down
-	docker compose up -d minio metastore-db metastore trino
+	docker compose up -d minio minio-init metastore-db metastore trino
 
 data-lake-down:
 	@echo "Stopping data lake services"
@@ -47,11 +51,11 @@ data-lake-down:
 
 data-lake-logs:
 	@echo "Showing data lake logs"
-	docker compose logs -f minio metastore-db metastore trino
+	docker compose logs -f minio minio-init metastore-db metastore trino
 
 data-lake-status:
 	@echo "Checking data lake service status"
-	docker compose ps minio metastore-db metastore trino
+	docker compose ps minio minio-init metastore-db metastore trino
 
 data-lake-reset:
 	@echo "Resetting data lake services (WARNING: deletes all metastore data)"

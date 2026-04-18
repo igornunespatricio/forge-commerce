@@ -1,1 +1,2 @@
-SELECT * FROM hive.test.test_table;
+
+SHOW TABLES IN hive.test2;

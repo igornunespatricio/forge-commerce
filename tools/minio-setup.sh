@@ -23,7 +23,9 @@ FORGE_COMMERCE_PASS=${AWS_SECRET_ACCESS_KEY}
 # echo "FORGE_COMMERCE_PASS: $FORGE_COMMERCE_PASS"
 
 # Buckets to create
-BUCKETS=("raw" "cleaned" "curated")
+# BUCKETS=("raw" "cleaned" "curated")
+BUCKETS=("ecommerce")
+
 
 # Colors for output
 RED='\033[0;31m'

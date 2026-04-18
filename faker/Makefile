@@ -23,7 +23,8 @@ customers:
 		--total-records 1000 \
 		--batch-size 1000 \
 		--output-format json \
-		--bucket-name raw
+		--bucket-name ecommerce \
+		--filepath-prefix raw/customers
 
 # Generate product data (placeholder - to be implemented)
 products:
@@ -32,7 +33,8 @@ products:
 		--total-records 1000 \
 		--batch-size 1000 \
 		--output-format json \
-		--bucket-name raw
+		--bucket-name ecommerce \
+		--filepath-prefix raw/products
 
 # Generate order data (placeholder - to be implemented)
 orders:
@@ -41,7 +43,8 @@ orders:
 		--total-records 1000 \
 		--batch-size 1000 \
 		--output-format json \
-		--bucket-name raw
+		--bucket-name ecommerce \
+		--filepath-prefix raw/orders
 
 # Generate payment data (placeholder - to be implemented)
 payments:
@@ -50,7 +53,8 @@ payments:
 		--total-records 1000 \
 		--batch-size 1000 \
 		--output-format json \
-		--bucket-name raw
+		--bucket-name ecommerce \
+		--filepath-prefix raw/payments
 
 # Generate all data types
 all: customers products orders payments
