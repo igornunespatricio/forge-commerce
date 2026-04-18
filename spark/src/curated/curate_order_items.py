@@ -21,17 +21,19 @@ from pyspark.sql import functions as sf
 from pyspark.sql.window import Window
 from delta.tables import DeltaTable
 
-# Environment configuration
-ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "forge-commerce-user")
-SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "forge-commerce-pass")
-S3_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT", "http://minio:9000")
-PREFIX = "order_items"
-RAW_BUCKET = "raw"
-CLEANED_BUCKET = "cleaned"
-CURATED_BUCKET = "curated"
-RAW_PATH = f"s3a://{RAW_BUCKET}/orders/"
-CLEANED_PATH = f"s3a://{CLEANED_BUCKET}/orders/"
-CURATED_PATH = f"s3a://{CURATED_BUCKET}/{PREFIX}/"
+# Get the absolute path to the spark directory
+spark_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, spark_dir)
+
+# Import configuration
+from src.utils.config import (
+    ACCESS_KEY,
+    SECRET_KEY,
+    S3_ENDPOINT,
+    CLEAN_PATH_ORDERS,
+    CURATED_PATH_ORDER_ITEMS,
+    CURATED_PATH_PRODUCTS,
+)
 
 
 def setup_spark_session(app_name: str = "curate_order_items") -> SparkSession:
@@ -282,7 +284,7 @@ def curate_order_items_fact(
         print(f"Exploded order items records: {df_exploded_items.count()}")
 
         # Define product dimension path
-        product_dimension_path = f"s3a://{CURATED_BUCKET}/products/"
+        product_dimension_path = CURATED_PATH_PRODUCTS
 
         # Join with product dimension using temporal logic
         df_with_product_sk = join_with_product_dimension(
@@ -363,11 +365,13 @@ def main():
     """
     try:
         print("Starting order items fact table curation...")
-        print(f"Using cleaned data path: {CLEANED_PATH}")
-        print(f"Using curated data path: {CURATED_PATH}")
+        print(f"Using cleaned data path: {CLEAN_PATH_ORDERS}")
+        print(f"Using curated data path: {CURATED_PATH_ORDER_ITEMS}")
         print()
 
-        curate_order_items_fact(cleaned_path=CLEANED_PATH, curated_path=CURATED_PATH)
+        curate_order_items_fact(
+            cleaned_path=CLEAN_PATH_ORDERS, curated_path=CURATED_PATH_ORDER_ITEMS
+        )
         print("Order items fact table curation completed successfully!")
 
     except Exception as e:

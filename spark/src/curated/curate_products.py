@@ -19,28 +19,19 @@ from pyspark.sql import functions as sf
 from pyspark.sql.window import Window
 from delta.tables import DeltaTable
 
-# Import the SCD2 utility function using absolute path
-import sys
-import os
-
 # Get the absolute path to the spark directory
-spark_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+spark_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, spark_dir)
 
-# Now import the SCD2 utility function
+# Import configuration and utilities
+from src.utils.config import (
+    ACCESS_KEY,
+    SECRET_KEY,
+    S3_ENDPOINT,
+    CLEAN_PATH_PRODUCTS,
+    CURATED_PATH_PRODUCTS,
+)
 from src.utils.scd2 import apply_scd_type2
-
-# Environment configuration
-ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "forge-commerce-user")
-SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "forge-commerce-pass")
-S3_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT", "http://minio:9000")
-PREFIX = "products"
-RAW_BUCKET = "raw"
-CLEANED_BUCKET = "cleaned"
-CURATED_BUCKET = "curated"
-RAW_PATH = f"s3a://{RAW_BUCKET}/{PREFIX}/"
-CLEANED_PATH = f"s3a://{CLEANED_BUCKET}/{PREFIX}/"
-CURATED_PATH = f"s3a://{CURATED_BUCKET}/{PREFIX}/"
 
 
 def setup_spark_session(app_name: str = "curate_products") -> SparkSession:
@@ -192,11 +183,13 @@ def main():
     """
     try:
         print("Starting product data curation...")
-        print(f"Using cleaned data path: {CLEANED_PATH}")
-        print(f"Using curated data path: {CURATED_PATH}")
+        print(f"Using cleaned data path: {CLEAN_PATH_PRODUCTS}")
+        print(f"Using curated data path: {CURATED_PATH_PRODUCTS}")
         print()
 
-        curate_products_scd2(cleaned_path=CLEANED_PATH, curated_path=CURATED_PATH)
+        curate_products_scd2(
+            cleaned_path=CLEAN_PATH_PRODUCTS, curated_path=CURATED_PATH_PRODUCTS
+        )
         print("Product curation completed successfully!")
 
     except Exception as e:
