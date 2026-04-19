@@ -77,7 +77,9 @@ def _generate_customers(**context):
         "--output-format",
         "json",
         "--bucket-name",
-        "raw",
+        "ecommerce",
+        "--filepath-prefix",
+        "raw/customers",
         "--endpoint-url",
         "http://minio:9000",
     ]
@@ -99,7 +101,9 @@ def _generate_products(**context):
         "--output-format",
         "json",
         "--bucket-name",
-        "raw",
+        "ecommerce",
+        "--filepath-prefix",
+        "raw/products",
         "--endpoint-url",
         "http://minio:9000",
     ]
@@ -120,7 +124,9 @@ def _generate_orders(**context):
         "--output-format",
         "json",
         "--bucket-name",
-        "raw",
+        "ecommerce",
+        "--filepath-prefix",
+        "raw/orders",
         "--endpoint-url",
         "http://minio:9000",
     ]
@@ -141,7 +147,9 @@ def _generate_payments(**context):
         "--output-format",
         "json",
         "--bucket-name",
-        "raw",
+        "ecommerce",
+        "--filepath-prefix",
+        "raw/payments",
         "--endpoint-url",
         "http://minio:9000",
     ]

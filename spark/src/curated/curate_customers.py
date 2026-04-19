@@ -24,14 +24,14 @@ spark_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, spark_dir)
 
 # Import configuration and utilities
-from src.utils.config import (
+from utils.config import (
     ACCESS_KEY,
     SECRET_KEY,
     S3_ENDPOINT,
     CLEAN_PATH_CUSTOMERS,
     CURATED_PATH_CUSTOMERS,
 )
-from src.utils.scd2 import apply_scd_type2
+from utils.scd2 import apply_scd_type2
 
 
 def setup_spark_session(app_name: str = "curate_customers") -> SparkSession:

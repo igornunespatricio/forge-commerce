@@ -10,7 +10,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as sf
 import pyspark.sql.types as st
 import json
-from src.utils.config import RAW_PATH_PAYMENTS, CLEAN_PATH_PAYMENTS
+from utils.config import RAW_PATH_PAYMENTS, CLEAN_PATH_PAYMENTS
 
 
 def main():

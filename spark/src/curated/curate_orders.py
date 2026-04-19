@@ -26,7 +26,7 @@ spark_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, spark_dir)
 
 # Import configuration
-from src.utils.config import (
+from utils.config import (
     ACCESS_KEY,
     SECRET_KEY,
     S3_ENDPOINT,

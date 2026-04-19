@@ -8,7 +8,7 @@ sys.path.insert(0, spark_dir)
 from delta import DeltaTable
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as sf
-from src.utils.config import RAW_PATH_PRODUCTS, CLEAN_PATH_PRODUCTS
+from utils.config import RAW_PATH_PRODUCTS, CLEAN_PATH_PRODUCTS
 
 
 def main():

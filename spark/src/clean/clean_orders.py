@@ -9,7 +9,7 @@ from delta import DeltaTable
 from pyspark.sql import SparkSession
 import pyspark.sql.types as st
 from pyspark.sql import functions as sf
-from src.utils.config import RAW_PATH_ORDERS, CLEAN_PATH_ORDERS
+from utils.config import RAW_PATH_ORDERS, CLEAN_PATH_ORDERS
 
 
 def main():
