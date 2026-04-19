@@ -2,6 +2,11 @@ up:
 	@echo "Starting containers"
 	docker compose up -d
 
+platform-up:
+	@echo "Starting platform services: Spark, Airflow, MinIO"
+	@echo "Excluding: metastore-db, metastore, trino"
+	docker compose up -d minio minio-init spark-master spark-worker-1 spark-submit postgres redis airflow-init airflow-apiserver airflow-scheduler airflow-dag-processor airflow-worker airflow-triggerer
+
 down:
 	@echo "Stopping containers"
 	docker compose down
