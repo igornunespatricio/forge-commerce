@@ -1,18 +1,9 @@
-SHOW catalogs;
+SELECT * FROM hive.ecommerce.customers limit 10;
 
-SHOW schemas;
+select * from hive.ecommerce.products limit 10;
 
-CREATE SCHEMA hive.test;
+select * from hive.ecommerce.orders limit 10;
 
-CREATE TABLE hive.test.test_table (
-  id INT,
-  name VARCHAR
-)
-WITH (
-  format = 'PARQUET',
-  external_location = 's3a://raw/warehouse/test_table'
-);
+select * from hive.ecommerce.order_items limit 10;
 
-INSERT INTO hive.test.test_table VALUES (1, 'test'), (2, 'forge-commerce');
-
-SELECT * FROM hive.test.test_table;
+select * from hive.ecommerce.payments limit 10;
