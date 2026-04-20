@@ -1,2 +1,1 @@
-
-SHOW TABLES IN hive.test2;
+SELECT * FROM hive.ecommerce.customers;
