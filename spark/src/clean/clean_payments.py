@@ -55,6 +55,7 @@ def main():
             # ----------------------------
             # Convert date columns
             # ----------------------------
+            .withColumn("payment_date", sf.to_date("payment_date"))
             # combine date and time into payment timestamp
             .withColumn(
                 "payment_timestamp",

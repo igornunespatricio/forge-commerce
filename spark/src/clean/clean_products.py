@@ -8,6 +8,7 @@ sys.path.insert(0, spark_dir)
 from delta import DeltaTable
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as sf
+import pyspark.sql.types as st
 from utils.config import RAW_PATH_PRODUCTS, CLEAN_PATH_PRODUCTS
 
 
@@ -41,6 +42,19 @@ def main():
         df_clean = (
             df_deduplicated
             # ----------------------------
+            # Convert numeric columns
+            # ----------------------------
+            .withColumn("product_id", sf.col("product_id").cast("integer"))
+            .withColumn("price", sf.col("price").cast(st.DecimalType(10, 2)))
+            .withColumn("cost_price", sf.col("cost_price").cast(st.DecimalType(10, 2)))
+            .withColumn("margin", sf.col("margin").cast(st.DecimalType(8, 4)))
+            .withColumn("weight", sf.col("weight").cast(st.DecimalType(8, 3)))
+            .withColumn(
+                "product_rating", sf.col("product_rating").cast(st.DecimalType(3, 2))
+            )
+            .withColumn("inventory_level", sf.col("inventory_level").cast("integer"))
+            .withColumn("review_count", sf.col("review_count").cast("integer"))
+            # ----------------------------
             # Standardize / normalize text
             # ----------------------------
             .withColumn("product_name", sf.initcap(sf.trim("product_name")))
@@ -68,12 +82,17 @@ def main():
             .withColumn("full_category", sf.concat_ws(" > ", "category", "subcategory"))
             # Profit per unit
             .withColumn(
-                "profit_per_unit", sf.round(sf.col("price") - sf.col("cost_price"), 2)
+                "profit_per_unit",
+                sf.round(sf.col("price") - sf.col("cost_price"), 2).cast(
+                    st.DecimalType(10, 2)
+                ),
             )
             # Total profit potential
             .withColumn(
                 "total_profit_potential",
-                sf.round(sf.col("profit_per_unit") * sf.col("inventory_level"), 2),
+                sf.round(sf.col("profit_per_unit") * sf.col("inventory_level"), 2).cast(
+                    st.DecimalType(14, 2)
+                ),
             )
             # Product age in days
             .withColumn(
@@ -103,23 +122,28 @@ def main():
             # Dimensions parsing
             .withColumn("dimensions_parsed", sf.split("dimensions", "x"))
             .withColumn(
-                "length_cm", sf.col("dimensions_parsed").getItem(0).cast("double")
+                "length_cm",
+                sf.col("dimensions_parsed").getItem(0).cast(st.DecimalType(8, 2)),
             )
             .withColumn(
-                "width_cm", sf.col("dimensions_parsed").getItem(1).cast("double")
+                "width_cm",
+                sf.col("dimensions_parsed").getItem(1).cast(st.DecimalType(8, 2)),
             )
             .withColumn(
-                "height_cm", sf.col("dimensions_parsed").getItem(2).cast("double")
+                "height_cm",
+                sf.col("dimensions_parsed").getItem(2).cast(st.DecimalType(8, 2)),
             )
             .withColumn(
                 "volume_cm3",
                 sf.round(
                     sf.col("length_cm") * sf.col("width_cm") * sf.col("height_cm"), 2
-                ),
+                ).cast(st.DecimalType(12, 3)),
             )
             .withColumn(
                 "dimensions_ratio",
-                sf.round(sf.col("length_cm") / sf.col("height_cm"), 2),
+                sf.round(sf.col("length_cm") / sf.col("height_cm"), 2).cast(
+                    st.DecimalType(8, 4)
+                ),
             )
             # ----------------------------
             # Data quality improvements

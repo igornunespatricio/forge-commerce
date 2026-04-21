@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS hive.ecommerce.payments;
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.customers (
     sk_customer BIGINT,
-    customer_id VARCHAR,
+    customer_id INTEGER,
     first_name VARCHAR,
     last_name VARCHAR,
     name VARCHAR,
@@ -49,7 +49,7 @@ WITH (
 
 CREATE TABLE IF NOT EXISTS  hive.ecommerce.products (
     sk_product BIGINT,
-    product_id VARCHAR,
+    product_id INTEGER,
     product_name VARCHAR,
     category VARCHAR,
     subcategory VARCHAR,
@@ -102,8 +102,8 @@ WITH (
 );
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.orders (
-    order_id VARCHAR,
-    customer_id VARCHAR,
+    order_id INTEGER,
+    customer_id INTEGER,
     order_date DATE,
     order_status VARCHAR,
     total_amount DECIMAL(12,2),
@@ -140,9 +140,9 @@ WITH (
 );
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.order_items (
-    order_id VARCHAR,
-    customer_id VARCHAR,
-    product_id VARCHAR,
+    order_id INTEGER,
+    customer_id INTEGER,
+    product_id INTEGER,
     sk_product BIGINT,
     product_name VARCHAR,
     category VARCHAR,
@@ -163,9 +163,9 @@ WITH (
 );
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.payments (
-    payment_id VARCHAR,
-    order_id VARCHAR,
-    customer_id VARCHAR,
+    payment_id INTEGER,
+    order_id INTEGER,
+    customer_id INTEGER,
     order_amount DECIMAL(10,2),
     net_amount DECIMAL(12,2),
     transaction_fee DECIMAL(10,2),

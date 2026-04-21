@@ -7,6 +7,7 @@ sys.path.insert(0, spark_dir)
 
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as sf
+import pyspark.sql.types as st
 from delta.tables import DeltaTable
 
 # from src.utils.config import RAW_PATH_CUSTOMERS, CLEAN_PATH_CUSTOMERS
@@ -43,6 +44,14 @@ def main():
 
         df_clean = (
             df_deduplicated
+            # ----------------------------
+            # Convert numeric columns
+            # ----------------------------
+            .withColumn("customer_id", sf.col("customer_id").cast("integer"))
+            .withColumn("total_orders", sf.col("total_orders").cast("integer"))
+            .withColumn(
+                "total_spent", sf.col("total_spent").cast(st.DecimalType(12, 2))
+            )
             # ----------------------------
             # Standardize / normalize text
             # ----------------------------
@@ -91,7 +100,7 @@ def main():
                 sf.when(
                     (sf.col("total_orders") > 0) & (sf.col("total_spent") >= 0),
                     sf.round(sf.col("total_spent") / sf.col("total_orders"), 2),
-                ),
+                ).cast(st.DecimalType(10, 2)),
             )
             # Days since last update
             .withColumn(
