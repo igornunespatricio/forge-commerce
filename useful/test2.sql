@@ -1,3 +1,1 @@
-
-
-show tables in hive.ecommerce;
+select distinct creation_year from hive.ecommerce.customers

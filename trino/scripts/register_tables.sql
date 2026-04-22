@@ -44,8 +44,12 @@ CREATE TABLE IF NOT EXISTS hive.ecommerce.customers (
 )
 WITH (
   format = 'PARQUET',
+  partitioned_by = ARRAY['creation_year', 'creation_month'],
   external_location = 's3a://ecommerce/curated/customers'
 );
+
+-- Sync partition metadata to automatically discover and load all existing partitions
+CALL hive.system.sync_partition_metadata('ecommerce', 'customers', 'FULL');
 
 CREATE TABLE IF NOT EXISTS  hive.ecommerce.products (
     sk_product BIGINT,
@@ -71,8 +75,6 @@ CREATE TABLE IF NOT EXISTS  hive.ecommerce.products (
     is_active BOOLEAN,
     created_at TIMESTAMP,
     last_updated TIMESTAMP,
-    creation_year INTEGER,
-    creation_month INTEGER,
     full_category VARCHAR,
     profit_per_unit DECIMAL(10,2),
     total_profit_potential DECIMAL(14,2),
@@ -94,12 +96,18 @@ CREATE TABLE IF NOT EXISTS  hive.ecommerce.products (
     is_current BOOLEAN,
     effective_from TIMESTAMP,
     effective_to TIMESTAMP,
-    ingestion_timestamp TIMESTAMP
+    ingestion_timestamp TIMESTAMP,
+    creation_year INTEGER,
+    creation_month INTEGER
 )
 WITH (
   format = 'PARQUET',
+  partitioned_by = ARRAY['creation_year', 'creation_month'],
   external_location = 's3a://ecommerce/curated/products'
 );
+
+-- Sync partition metadata to automatically discover and load all existing partitions
+CALL hive.system.sync_partition_metadata('ecommerce', 'products', 'FULL');
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.orders (
     order_id INTEGER,
@@ -130,14 +138,18 @@ CREATE TABLE IF NOT EXISTS hive.ecommerce.orders (
     )),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
+    sk_customer BIGINT,
     order_year INTEGER,
-    order_month INTEGER,
-    sk_customer BIGINT
+    order_month INTEGER
 )
 WITH (
   format = 'PARQUET',
+  partitioned_by = ARRAY['order_year', 'order_month'],
   external_location = 's3a://ecommerce/curated/orders'
 );
+
+-- Sync partition metadata to automatically discover and load all existing partitions
+CALL hive.system.sync_partition_metadata('ecommerce', 'orders', 'FULL');
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.order_items (
     order_id INTEGER,
@@ -159,8 +171,12 @@ CREATE TABLE IF NOT EXISTS hive.ecommerce.order_items (
 )
 WITH (
   format = 'PARQUET',
+  partitioned_by = ARRAY['order_year', 'order_month'],
   external_location = 's3a://ecommerce/curated/order_items'
 );
+
+-- Sync partition metadata to automatically discover and load all existing partitions
+CALL hive.system.sync_partition_metadata('ecommerce', 'order_items', 'FULL');
 
 CREATE TABLE IF NOT EXISTS hive.ecommerce.payments (
     payment_id INTEGER,
@@ -200,13 +216,17 @@ CREATE TABLE IF NOT EXISTS hive.ecommerce.payments (
     long_chargeback_time_flag BOOLEAN,
     negative_net_amount_flag BOOLEAN,
     status_inconsistency_flag BOOLEAN,
-    payment_year INTEGER,
-    payment_month INTEGER,
     payment_hour INTEGER,
     payment_day_of_week INTEGER,
-    sk_customer BIGINT
+    sk_customer BIGINT,
+    payment_year INTEGER,
+    payment_month INTEGER
 )
 WITH (
   format = 'PARQUET',
+  partitioned_by = ARRAY['payment_year', 'payment_month'],
   external_location = 's3a://ecommerce/curated/payments'
 );
+
+-- Sync partition metadata to automatically discover and load all existing partitions
+CALL hive.system.sync_partition_metadata('ecommerce', 'payments', 'FULL');
