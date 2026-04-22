@@ -1,17 +1,15 @@
+import os
+import sys
+
+# Get the absolute path to the spark directory
+spark_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, spark_dir)
+
 from delta import DeltaTable
 from pyspark.sql import SparkSession
 import pyspark.sql.types as st
-import os
 from pyspark.sql import functions as sf
-
-ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "forge-commerce-user")
-SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "forge-commerce-pass")
-S3_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT", "http://minio:9000")
-PREFIX = "orders"
-ORIGIN_BUCKET = "raw"
-DESTINATION_BUCKET = "cleaned"
-ORIGIN_PATH = f"s3a://{ORIGIN_BUCKET}/{PREFIX}/"
-DESTINATION_PATH = f"s3a://{DESTINATION_BUCKET}/{PREFIX}/"
+from utils.config import RAW_PATH_ORDERS, CLEAN_PATH_ORDERS
 
 
 def main():
@@ -36,7 +34,7 @@ def main():
 
     try:
         # Read data from MinIO
-        df = spark.read.json(ORIGIN_PATH)
+        df = spark.read.json(RAW_PATH_ORDERS)
 
         # Drop duplicates based on order id and created at
         df_deduplicated = df.dropDuplicates()
@@ -243,13 +241,13 @@ def main():
         #     "overwrite"
         # ).save(DESTINATION_PATH)
 
-        delta_table_exists = DeltaTable.isDeltaTable(spark, DESTINATION_PATH)
+        delta_table_exists = DeltaTable.isDeltaTable(spark, CLEAN_PATH_ORDERS)
         if not delta_table_exists:
             df_clean.write.format("delta").partitionBy(
                 "order_year", "order_month"
-            ).mode("overwrite").save(DESTINATION_PATH)
+            ).mode("overwrite").save(CLEAN_PATH_ORDERS)
         else:
-            cleaned_table = DeltaTable.forPath(spark, DESTINATION_PATH)
+            cleaned_table = DeltaTable.forPath(spark, CLEAN_PATH_ORDERS)
             (
                 cleaned_table.alias("tgt")
                 .merge(

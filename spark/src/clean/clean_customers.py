@@ -1,16 +1,17 @@
-from pyspark.sql import SparkSession, Window
 import os
+import sys
+
+# Get the absolute path to the spark directory
+spark_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, spark_dir)
+
+from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as sf
+import pyspark.sql.types as st
 from delta.tables import DeltaTable
 
-ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY_ID", "forge-commerce-user")
-SECRET_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "forge-commerce-pass")
-S3_ENDPOINT = os.environ.get("AWS_S3_ENDPOINT", "http://minio:9000")
-PREFIX = "customers"
-ORIGIN_BUCKET = "raw"
-DESTINATION_BUCKET = "cleaned"
-ORIGIN_PATH = f"s3a://{ORIGIN_BUCKET}/{PREFIX}/"
-DESTINATION_PATH = f"s3a://{DESTINATION_BUCKET}/{PREFIX}/"
+# from src.utils.config import RAW_PATH_CUSTOMERS, CLEAN_PATH_CUSTOMERS
+from utils.config import RAW_PATH_CUSTOMERS, CLEAN_PATH_CUSTOMERS
 
 
 def main():
@@ -36,13 +37,21 @@ def main():
 
     try:
         # Read data from MinIO
-        df = spark.read.json(ORIGIN_PATH)
+        df = spark.read.json(RAW_PATH_CUSTOMERS)
 
         # Deduplicate exact records
         df_deduplicated = df.dropDuplicates()
 
         df_clean = (
             df_deduplicated
+            # ----------------------------
+            # Convert numeric columns
+            # ----------------------------
+            .withColumn("customer_id", sf.col("customer_id").cast("integer"))
+            .withColumn("total_orders", sf.col("total_orders").cast("integer"))
+            .withColumn(
+                "total_spent", sf.col("total_spent").cast(st.DecimalType(12, 2))
+            )
             # ----------------------------
             # Standardize / normalize text
             # ----------------------------
@@ -91,7 +100,7 @@ def main():
                 sf.when(
                     (sf.col("total_orders") > 0) & (sf.col("total_spent") >= 0),
                     sf.round(sf.col("total_spent") / sf.col("total_orders"), 2),
-                ),
+                ).cast(st.DecimalType(10, 2)),
             )
             # Days since last update
             .withColumn(
@@ -144,14 +153,14 @@ def main():
         # ).mode("overwrite").save(DESTINATION_PATH)
 
         # merge into cleaned bucket
-        delta_table_exists = DeltaTable.isDeltaTable(spark, DESTINATION_PATH)
+        delta_table_exists = DeltaTable.isDeltaTable(spark, CLEAN_PATH_CUSTOMERS)
 
         if not delta_table_exists:
             df_clean.write.format("delta").partitionBy(
                 "creation_year", "creation_month"
-            ).mode("overwrite").save(DESTINATION_PATH)
+            ).mode("overwrite").save(CLEAN_PATH_CUSTOMERS)
         else:
-            cleaned_table = DeltaTable.forPath(spark, DESTINATION_PATH)
+            cleaned_table = DeltaTable.forPath(spark, CLEAN_PATH_CUSTOMERS)
             (
                 cleaned_table.alias("tgt")
                 .merge(

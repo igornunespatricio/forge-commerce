@@ -246,9 +246,9 @@ class PaymentGenerator:
     def _get_last_payment_id(self) -> int:
         """Get the last payment ID from storage and return next available ID."""
         try:
-            # List all payment files from storage
+            # List all payment files from storage using filepath_prefix
             payment_files = self.storage_client.list_objects(
-                self.config["bucket_name"], "payments"
+                self.config["bucket_name"], self.config.get("filepath_prefix")
             )
 
             if not payment_files:
@@ -701,9 +701,12 @@ class PaymentGenerator:
 
     def _load_reference_data_from_storage(self) -> Tuple[List[Dict], List[Dict]]:
         """Load orders data from storage using storage client."""
+        # Extract base path from filepath_prefix (e.g., "raw" from "raw/payments")
+        base_path = self.config.get("filepath_prefix").rsplit("/", 1)[0]
+
         orders_data: List[Dict] = []
         orders_data_list_objects = self.storage_client.list_objects(
-            self.config.get("bucket_name"), "orders"
+            self.config.get("bucket_name"), f"{base_path}/orders"
         )
         for orders_data_object in orders_data_list_objects:
             orders_data_list = self.storage_client.download_object_as_json(

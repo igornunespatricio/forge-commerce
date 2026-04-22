@@ -1,202 +1,390 @@
-# 📦 E-Commerce Data Warehouse at Scale (Faker + Spark + Airflow)
+# Forge Commerce - E-Commerce Data Warehouse at Scale
 
-## 📌 Project Overview
+A comprehensive e-commerce data warehouse platform built with modern data engineering technologies, designed to handle large-scale synthetic data generation, processing, and analytics for testing and development purposes.
 
-This project simulates a **large-scale e-commerce data platform** using **synthetic data generated with Faker** and processes it using **distributed data engineering technologies**.
+## Overview
 
-The goal is to design and implement an **end-to-end batch data pipeline** that:
+Forge Commerce is a complete data platform that simulates a real-world e-commerce environment with customer data, products, orders, and payments. The platform uses cutting-edge technologies to generate, process, and analyze data at scale, making it ideal for testing data pipelines, analytics systems, and machine learning models.
 
-* Generates tens of millions of realistic records
-* Stores raw data in a data lake
-* Transforms data using distributed processing
-* Models analytics-ready warehouse tables
-* Orchestrates workflows reliably
+## Architecture
 
-This project is designed to closely resemble **real-world data engineering workloads**.
+The platform consists of several interconnected components:
 
----
+### Core Components
 
-## 🎯 Objectives
+1. **Data Generation** - Faker-based synthetic data generation
+2. **Data Processing** - Apache Spark for data transformation
+3. **Data Storage** - MinIO S3-compatible object storage
+4. **Orchestration** - Apache Airflow for workflow management
+5. **Analytics** - Trino for SQL queries and analysis
+6. **Metadata** - Hive Metastore for table management
 
-* Generate **large-scale fake data** safely using Faker
-* Build **ETL pipelines** using Spark
-* Implement **data modeling** (star schema)
-* Use **Parquet** for efficient storage
-* Orchestrate workflows with Airflow
-* Apply **data quality checks**
-* Make the data **analytics-ready**
+### Data Flow
 
----
-
-## 🏗️ Architecture
-
-```text
-Faker (Python)
-     ↓
-Raw Data (CSV / JSON)
-     ↓
-Data Lake (raw → cleaned → curated)
-     ↓
-Apache Spark (ETL & transformations)
-     ↓
-Parquet Tables (Partitioned)
-     ↓
-Data Warehouse (Star Schema)
-     ↓
-Analytics / BI Queries
+```
+Faker Data Generation → MinIO Raw Storage → Spark Processing → 
+Curated Storage → Trino Analytics
 ```
 
----
+## Quick Start
 
-## 🧰 Tech Stack
+### Prerequisites
 
-* **Python** – data generation & orchestration
-* **Faker** – synthetic data generation
-* **Apache Spark** – distributed processing
-* **Apache Airflow** – workflow orchestration
-* **Parquet** – columnar storage
-* **S3 / HDFS / Local FS** – data lake storage
-* **SQL** – analytics queries
+- Docker and Docker Compose
+- At least 8GB RAM (16GB recommended)
+- 2+ CPU cores
 
----
+### Setup
 
-## 📂 Project Structure
-
-```text
-ecommerce-data-platform/
-│
-├── data/
-│   ├── raw/
-│   ├── cleaned/
-│   └── curated/
-│
-├── faker/
-│   ├── generate_customers.py
-│   ├── generate_products.py
-│   ├── generate_orders.py
-│   └── generate_payments.py
-│
-├── spark/
-│   ├── clean_customers.py
-│   ├── transform_orders.py
-│   ├── build_fact_orders.py
-│   └── build_dimensions.py
-│
-├── airflow/
-│   └── dags/
-│       └── ecommerce_etl_dag.py
-│
-├── sql/
-│   └── analytics_queries.sql
-│
-├── README.md
-└── requirements.txt
+1. Clone the repository:
+```bash
+git clone https://github.com/igornunespatricio/forge-commerce.git
+cd forge-commerce
 ```
 
----
+2. Create environment file:
+```bash
+cp .env.example .env
+```
 
-## 🧪 Data Model
+3. Start all services:
+```bash
+docker-compose up -d
+```
 
-### Dimension Tables
+4. Verify services are running:
+```bash
+docker-compose ps
+```
 
-* `dim_customer`
-* `dim_product`
-* `dim_date`
+### Accessing Services
 
-### Fact Tables
+- **Airflow UI**: http://localhost:8080 (admin/admin)
+- **Trino UI**: http://localhost:8088
+- **MinIO Console**: http://localhost:9001 (admin/password)
+- **Spark UI**: http://localhost:8080
+- **Jupyter Lab**: http://localhost:8888 (development only)
 
-* `fact_orders`
-* `fact_payments`
+## Platform Components
 
-**Schema type:** Star schema
-**Partitioning:** `order_date`, `country`
+### 1. Faker Data Generator (`faker/`)
 
----
+Generates realistic e-commerce synthetic data:
 
-## 📊 Data Volume Targets
+- **Customers**: 5M-10M records with demographics and behavior patterns
+- **Products**: 100K-1M records with categories and pricing
+- **Orders**: 20M-50M records with temporal patterns
+- **Payments**: 20M-50M records with transaction details
 
-| Entity      | Rows (Target) |
-| ----------- | ------------- |
-| Customers   | 5M–10M        |
-| Products    | 500K–1M       |
-| Orders      | 20M–50M       |
-| Order Items | 50M–100M      |
-| Payments    | 20M–50M       |
+**Key Features**:
+- Batch processing with configurable sizes
+- REST API for individual record generation
+- Realistic data distributions and patterns
+- Data validation and quality checks
 
----
+**Usage**:
+```bash
+# Navigate to faker directory
+cd faker
 
-## 🔄 Pipeline Stages
+# Generate customer data
+make customers
 
-### 1️⃣ Data Generation
+# Generate all data types
+make all
 
-* Generate data incrementally (batch-by-batch)
-* Introduce realistic skew (popular products, repeat users)
-* Write output as CSV or JSON
+# Start API server
+make api
+```
 
-### 2️⃣ Ingestion
+### 2. Spark Processing (`spark/`)
 
-* Load raw data into the data lake
-* Preserve schema and metadata
+Processes raw data into curated warehouse format:
 
-### 3️⃣ Transformation
+- **Data Cleaning**: Validation and standardization
+- **Data Curation**: Building dimension and fact tables
+- **Delta Lake**: ACID transactions and time travel support
+- **Partitioning**: Optimized for analytical queries
 
-* Schema validation
-* Deduplication
-* Type casting
-* Joins across large tables
-* Aggregations
+**Key Features**:
+- Docker containerized environment
+- Jupyter Lab for interactive development
+- Configurable batch processing
+- S3 storage integration
 
-### 4️⃣ Data Modeling
+**Usage**:
+```bash
+# Navigate to spark directory
+cd spark
 
-* Build fact & dimension tables
-* Enforce surrogate keys
-* Partition data for performance
+# Clean customer data
+make spark-submit-clean-customers
 
-### 5️⃣ Orchestration
+# Curate all data
+make spark-submit-curate-all-data
 
-* Schedule pipelines with Airflow
-* Handle retries & failures
-* Add basic data quality checks
+# Start Jupyter (development)
+make jupyter
+```
 
----
+### 3. Airflow Orchestration (`airflow/`)
 
-## ✅ Data Quality Checks
+Manages end-to-end ETL workflows:
 
-* Null checks on primary keys
-* Duplicate detection
-* Referential integrity
-* Volume checks (row count thresholds)
+- **DAGs**: Separate DAGs for each pipeline stage
+- **Scheduling**: Daily automated execution
+- **Monitoring**: Task execution tracking
+- **Dependencies**: Service health checks
 
----
+**Key Features**:
+- Modular DAG design
+- Celery executor for distributed processing
+- PostgreSQL metadata database
+- Redis message broker
 
-## 📈 Example Analytics Queries
+**Usage**:
+```bash
+# Access Airflow UI
+open http://localhost:8080
 
-* Daily revenue
-* Top products by revenue
-* Customer lifetime value (LTV)
-* Orders by country
-* Payment success rate
+# Trigger manual DAG runs
+# Use Airflow UI for DAG management
+```
 
----
+### 4. Trino Analytics (`trino/`)
 
-## 🚀 How to Run (Local)
+Provides SQL access to curated data:
+
+- **Hive Catalog**: Connects to Hive Metastore
+- **Partition Pruning**: Optimized query performance
+- **S3 Storage**: Direct access to curated data
+- **SQL Interface**: ANSI SQL compatibility
+
+**Key Features**:
+- External table support
+- Columnar format optimization
+- Schema discovery
+- Query performance monitoring
+
+**Usage**:
+```bash
+# Connect to Trino
+curl -H "X-Trino-User: admin" http://localhost:8088
+
+# Sample queries
+# SELECT * FROM hive.ecommerce.customers LIMIT 10;
+# SELECT category, SUM(total_amount) FROM hive.ecommerce.orders GROUP BY category;
+```
+
+### 5. MinIO Storage (`minio/`)
+
+S3-compatible object storage:
+
+- **Raw Data**: Initial data generation output
+- **Curated Data**: Processed warehouse tables
+- **Configuration**: Environment-based access
+- **Console**: Web interface for management
+
+**Key Features**:
+- S3 API compatibility
+- Data lifecycle management
+- Encryption support
+- Network isolation
+
+## Data Pipeline
+
+### 1. Data Generation
+
+```mermaid
+graph TD
+    A[Faker Scripts] --> B[Customer Data]
+    A --> C[Product Data]
+    A --> D[Order Data]
+    A --> E[Payment Data]
+    B --> F[MinIO Raw Storage]
+    C --> F
+    D --> F
+    E --> F
+```
+
+### 2. Data Cleaning
+
+```mermaid
+graph TD
+    G[Spark Cleaning Jobs] --> H[Customer Validation]
+    G --> I[Product Validation]
+    G --> J[Order Validation]
+    G --> K[Payment Validation]
+    H --> L[Standardized Format]
+    I --> L
+    J --> L
+    K --> L
+    L --> M[MinIO Clean Storage]
+```
+
+### 3. Data Curation
+
+```mermaid
+graph TD
+    N[Spark Curation Jobs] --> O[Dimension Tables]
+    N --> P[Fact Tables]
+    O --> Q[Delta Lake Storage]
+    P --> Q
+    Q --> R[Trino Analytics]
+```
+
+## Configuration
+
+### Environment Variables
+
+Key variables in `.env` file:
+
+```env
+# MinIO Configuration
+MINIO_ROOT_USER=admin
+MINIO_ROOT_PASSWORD=password
+AWS_ACCESS_KEY_ID=admin
+AWS_SECRET_ACCESS_KEY=password
+AWS_S3_ENDPOINT=http://localhost:9000
+
+# Airflow Configuration
+AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+AIRFLOW__CELERY__BROKER_URL=redis://:@redis:6379/0
+
+# Spark Configuration
+SPARK_MASTER=spark://spark-master:7077
+AWS_S3_PATH_STYLE_ACCESS=true
+```
+
+### Docker Compose Profiles
+
+- **Default**: Core services (MinIO, Spark, Airflow, Trino)
+- **Development**: Includes Jupyter Lab
+- **Scaling**: Additional Spark workers
+- **Flower**: Celery monitoring
+
+## Monitoring and Logging
+
+### Log Locations
+
+- **Airflow**: `airflow/logs/`
+- **Spark**: `spark/logs/`
+- **MinIO**: `minio_data/`
+- **Trino**: Container logs
+
+### Health Checks
+
+All services implement health checks:
 
 ```bash
-pip install -r requirements.txt
-python faker/generate_customers.py
-spark-submit spark/transform_orders.py
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f [service-name]
 ```
 
----
+## Development
 
-## 📌 Future Enhancements
+### Adding New Components
 
-* Add Kafka for real-time order ingestion
-* Implement incremental loads (MERGE strategy)
-* Add dbt for transformations
-* Add monitoring & alerting
-* Deploy on cloud (AWS / GCP)
+1. Create new directory for component
+2. Add Docker configuration
+3. Update docker-compose.yml
+4. Document in README
+5. Add to data pipeline if needed
 
-## 📜 License
+### Testing
 
-MIT
+```bash
+# Test data generation
+cd faker && make test
+
+# Test Spark jobs
+cd spark && make test
+
+# Test SQL queries
+trino --execute "SELECT 1"
+```
+
+## Performance Considerations
+
+### Resource Requirements
+
+- **Minimum**: 8GB RAM, 2 CPU cores
+- **Recommended**: 16GB RAM, 4 CPU cores
+- **Production**: 32GB RAM, 8+ CPU cores
+
+### Optimization Tips
+
+1. Adjust Docker resource limits in docker-compose.yml
+2. Configure Spark executor memory based on data volume
+3. Use appropriate partitioning for large datasets
+4. Monitor query performance with Trino UI
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Service Not Starting**:
+   - Check logs with `docker-compose logs [service]`
+   - Verify environment variables
+   - Ensure sufficient resources
+
+2. **Data Generation Failures**:
+   - Check MinIO connectivity
+   - Verify bucket permissions
+   - Review faker logs
+
+3. **Spark Job Failures**:
+   - Check Spark UI for errors
+   - Verify S3 configuration
+   - Monitor memory usage
+
+4. **Airflow DAG Issues**:
+   - Check database connectivity
+   - Verify DAG file syntax
+   - Review task logs
+
+### Debug Mode
+
+Enable debug logging:
+
+```bash
+# Airflow
+export AIRFLOW__CORE__LOG_LEVEL=DEBUG
+
+# Spark
+export SPARK_CONF="spark.executor.extraJavaOptions=-Dlog4j.debug=true"
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch
+3. Follow existing patterns
+4. Update documentation
+5. Test changes thoroughly
+6. Submit pull request
+
+## License
+
+This project follows the MIT License. See LICENSE file for details.
+
+## Support
+
+For issues and questions:
+1. Check troubleshooting section
+2. Review service logs
+3. Consult component documentation
+4. Create GitHub issue if needed
+
+## Future Enhancements
+
+- Machine learning model training pipelines
+- Real-time data streaming with Kafka
+- Enhanced monitoring with Grafana
+- Multi-tenant data isolation
+- Automated data quality reporting
+``

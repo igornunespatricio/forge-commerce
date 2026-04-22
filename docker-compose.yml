@@ -567,12 +567,101 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  # =========================================================================
+  # HIVE METASTORE - Metadata storage for Trino Hive catalog
+  # =========================================================================
+  metastore-db:
+    image: mariadb:10.11
+    container_name: hive-metastore-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - metastore-db-volume:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    networks:
+      - default-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: always
+
+  metastore:
+    build:
+      context: ./metastore
+      dockerfile: Dockerfile
+    container_name: hive-metastore
+    depends_on:
+      metastore-db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      HIVE_CONF_DIR: /opt/hive/conf
+      HADOOP_CONF_DIR: /opt/hive/conf
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+      DB_DRIVER: mysql
+    volumes:
+      - ./metastore/core-site.xml:/opt/hive/conf/core-site.xml
+      - ./metastore/log4j.properties:/opt/hive/conf/log4j.properties
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+    ports:
+      - "9083:9083"
+    networks:
+      - default-network
+    restart: always
+
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    hostname: trino
+    ports:
+      - "8088:8080"
+    depends_on:
+      - minio
+      - metastore
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT}
+      AWS_S3_PATH_STYLE_ACCESS: ${AWS_S3_PATH_STYLE_ACCESS}
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+    networks:
+      - default-network
+    restart: always
+
+
 # =============================================================================
 # VOLUMES
 # =============================================================================
 volumes:
   minio_data:
   postgres-db-volume:
+  metastore-db-volume:
 
 # =============================================================================
 # NETWORKS
